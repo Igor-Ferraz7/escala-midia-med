@@ -86,12 +86,13 @@
   // ---------- Campo de nome com a lista de nomes salvos ----------
 
   const sugestoes = el('sugestoes');
-  const MSG_NOME_DE_OUTRO = 'Esse nome está ligado a outro aparelho. Se for você, peça ao responsável para liberar na planilha.';
+  const vinculo = el('vinculo');
   let ativa = -1; // posição destacada pelas setas do teclado
+  let codigoGerado = null; // { nome, codigo, ate } mostrado no aparelho que já usa o nome
 
   // "Ígor  ferraz" e "Igor Ferraz" contam como o mesmo nome (igual à planilha).
   function chave(nome) {
-    return String(nome).normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/\s+/g, ' ').trim().toLowerCase();
+    return String(nome).normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/\s+/g, ' ').trim().toLowerCase();
   }
   function pessoaDoNome(nome) {
     const k = chave(nome);
@@ -101,9 +102,109 @@
     const p = pessoaDoNome(nome);
     return !!p && !p.seu;
   }
+  function mostrarCaixaDeCodigo() {
+    vinculo.scrollIntoView({ block: 'center', behavior: 'smooth' });
+    avisar('Esse nome está ligado a outro aparelho.');
+    const campo = el('codigo-vinculo');
+    if (campo) campo.focus({ preventScroll: true });
+  }
 
+  // Embaixo do campo de nome:
+  // - nome deste aparelho: link para gerar um código e usar o nome em outro aparelho;
+  // - nome de outro aparelho: caixa para digitar esse código.
   function conferirNome() {
-    erroNome.textContent = nomeDeOutro(campoNome.value) ? MSG_NOME_DE_OUTRO : '';
+    erroNome.textContent = '';
+    const p = pessoaDoNome(campoNome.value);
+    const temCodigo = p && p.seu && codigoGerado && chave(codigoGerado.nome) === chave(p.nome) && Date.now() < codigoGerado.ate;
+    const modo = !p ? '' : !p.seu ? 'pedir' : temCodigo ? 'mostrar' : 'oferecer';
+    const marca = modo + '|' + (p ? chave(p.nome) : '');
+    // Não redesenha à toa: a atualização automática apagaria o código que a pessoa está digitando.
+    if (vinculo.dataset.marca === marca) return;
+    vinculo.dataset.marca = marca;
+    vinculo.hidden = !modo;
+    if (!modo) { vinculo.innerHTML = ''; return; }
+
+    if (modo === 'oferecer') {
+      vinculo.innerHTML = '<button type="button" class="link" data-vinculo="gerar">Usar este nome em outro aparelho</button>';
+    } else if (modo === 'mostrar') {
+      const hora = new Date(codigoGerado.ate).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+      vinculo.innerHTML = '<div class="vinculo-caixa"><p>Código para o outro aparelho:</p>' +
+        '<span class="codigo-grande">' + esc(codigoGerado.codigo.replace(/(\d{3})(\d{3})/, '$1 $2')) + '</span>' +
+        '<p>No outro aparelho, abra a escala, escolha <b>' + esc(p.nome) + '</b> e digite esse código. Vale até ' + hora + '.</p></div>';
+    } else {
+      vinculo.innerHTML = '<div class="vinculo-caixa alerta">' +
+        '<p>Esse nome já está ligado a outro aparelho. Se for você, abra a escala no aparelho onde já usa esse nome, toque em <b>Usar este nome em outro aparelho</b> e digite aqui o código que aparecer.</p>' +
+        '<div class="vinculo-linha"><input id="codigo-vinculo" inputmode="numeric" autocomplete="one-time-code" maxlength="7" placeholder="000 000" aria-label="Código de 6 números">' +
+        '<button type="button" data-vinculo="ligar">Ligar</button></div>' +
+        '<p class="vinculo-erro" id="erro-vinculo" role="alert"></p>' +
+        '<small>Sem acesso ao outro aparelho? Peça ao responsável para liberar o nome.</small></div>';
+    }
+  }
+
+  vinculo.addEventListener('click', async (ev) => {
+    const b = ev.target.closest('[data-vinculo]');
+    if (!b || ocupado) return;
+    const nome = campoNome.value.trim();
+    if (b.dataset.vinculo === 'gerar') {
+      await acaoDeVinculo(b, 'gerar_codigo', { nome: nome }, (r) => {
+        codigoGerado = { nome: nome, codigo: String(r.codigo), ate: Date.now() + (r.minutos || 15) * 60000 };
+      });
+    } else {
+      const campo = el('codigo-vinculo');
+      const codigo = campo.value.replace(/\D/g, '');
+      if (codigo.length !== 6) {
+        el('erro-vinculo').textContent = 'Digite os 6 números do código.';
+        campo.focus();
+        return;
+      }
+      await acaoDeVinculo(b, 'usar_codigo', { nome: nome, codigo: codigo }, () => {
+        avisar('Pronto, este aparelho agora também usa o nome ' + nome + '.');
+      });
+    }
+  });
+  vinculo.addEventListener('keydown', (ev) => {
+    if (ev.key === 'Enter' && ev.target.id === 'codigo-vinculo') vinculo.querySelector('[data-vinculo="ligar"]').click();
+  });
+  vinculo.addEventListener('input', (ev) => {
+    if (ev.target.id === 'codigo-vinculo') el('erro-vinculo').textContent = '';
+  });
+
+  const ERROS_VINCULO = {
+    codigo_errado: 'Código errado. Confira e tente de novo.',
+    codigo_expirado: 'Esse código não vale mais. Gere outro no aparelho que já usa o nome.',
+    nao_e_seu: 'Este aparelho não está ligado a esse nome.',
+    nome_nao_existe: 'Esse nome ainda não existe na escala.',
+    so_com_planilha: 'Isso só funciona com a planilha ligada.'
+  };
+  async function acaoDeVinculo(botao, acao, dados, aoDarCerto) {
+    ocupado = true;
+    const texto = botao.textContent;
+    botao.disabled = true;
+    botao.textContent = 'Aguarde…';
+    let erro = null;
+    try {
+      const r = await enviar(acao, dados);
+      if (r && Array.isArray(r.tarefas)) tarefas = r.tarefas;
+      if (r && r.ok) aoDarCerto(r);
+      else erro = ERROS_VINCULO[r && r.erro] || 'Não deu certo. Tente de novo.';
+      if (r) receberPessoas(r.pessoas);
+    } catch (e) {
+      erro = 'Não deu para falar com a planilha. Confira a internet e tente de novo.';
+    } finally {
+      ocupado = false;
+      botao.disabled = false;
+      botao.textContent = texto;
+    }
+    vinculo.dataset.marca = ''; // força redesenhar
+    const digitado = el('codigo-vinculo') ? el('codigo-vinculo').value : '';
+    conferirNome();
+    if (erro) {
+      if (el('erro-vinculo')) {
+        el('codigo-vinculo').value = digitado;
+        el('erro-vinculo').textContent = erro;
+      } else avisar(erro);
+    }
+    render();
   }
 
   function abrirSugestoes() {
@@ -115,8 +216,7 @@
     const outros = pessoas.filter((p) => !p.seu && casa(p));
     if (!meus.length && !outros.length) return fecharSugestoes();
 
-    const item = (p) => '<li class="sugestao" role="option" data-nome="' + esc(p.nome) + '"' +
-      (p.seu ? '' : ' aria-disabled="true"') + '><span>' + esc(p.nome) + '</span>' +
+    const item = (p) => '<li class="sugestao" role="option" data-nome="' + esc(p.nome) + '"><span>' + esc(p.nome) + '</span>' +
       (p.seu ? '<small class="seu">este aparelho</small>' : '<small>outro aparelho</small>') + '</li>';
     sugestoes.innerHTML =
       (meus.length ? '<li class="sugestoes-grupo" role="presentation">Seus nomes</li>' + meus.map(item).join('') : '') +
@@ -139,7 +239,7 @@
       campoNome.value = meus[0].nome;
       gravar('escala-nome', meus[0].nome);
     }
-    if (document.activeElement !== campoNome) conferirNome();
+    conferirNome();
   }
   function escolherNome(nome) {
     campoNome.value = nome;
@@ -157,7 +257,7 @@
   campoNome.addEventListener('focus', abrirSugestoes);
   campoNome.addEventListener('blur', () => setTimeout(fecharSugestoes, 150));
   campoNome.addEventListener('keydown', (ev) => {
-    const opcoes = Array.from(sugestoes.querySelectorAll('.sugestao:not([aria-disabled])'));
+    const opcoes = Array.from(sugestoes.querySelectorAll('.sugestao'));
     if (ev.key === 'Escape') return fecharSugestoes();
     if (sugestoes.hidden || !opcoes.length) return;
     if (ev.key === 'ArrowDown' || ev.key === 'ArrowUp') {
@@ -174,12 +274,7 @@
   sugestoes.addEventListener('mousedown', (ev) => {
     ev.preventDefault();
     const li = ev.target.closest('.sugestao');
-    if (!li) return;
-    if (li.getAttribute('aria-disabled') === 'true') {
-      erroNome.textContent = MSG_NOME_DE_OUTRO;
-      return;
-    }
-    escolherNome(li.dataset.nome);
+    if (li) escolherNome(li.dataset.nome);
   });
   el('abrir-nomes').addEventListener('mousedown', (ev) => {
     ev.preventDefault();
@@ -227,6 +322,7 @@
     };
   }
   function demoAcao(acao, dados) {
+    if (acao === 'gerar_codigo' || acao === 'usar_codigo') return Object.assign(demoListar(), { ok: false, erro: 'so_com_planilha' });
     const base = demoBase();
     const t = base.find((x) => x.id === dados.id);
     const dono = demoDonos(base)[chave(dados.nome || '')];
@@ -405,8 +501,7 @@
       return;
     }
     if (acao === 'escalar' && nomeDeOutro(nome)) {
-      erroNome.textContent = MSG_NOME_DE_OUTRO;
-      campoNome.scrollIntoView({ block: 'center', behavior: 'smooth' });
+      mostrarCaixaDeCodigo();
       return;
     }
     if (acao === 'desfazer' && !window.confirm('Sair de ' + descrever(tarefa) + '?')) return;
@@ -425,8 +520,9 @@
       } else if (r && r.erro === 'nao_e_seu') {
         avisar('Só dá para sair pelo aparelho ligado a esse nome.');
       } else if (r && r.erro === 'nome_de_outro') {
-        erroNome.textContent = MSG_NOME_DE_OUTRO;
-        avisar('Esse nome está ligado a outro aparelho.');
+        // A lista local estava desatualizada: a resposta já trouxe o dono do nome.
+        conferirNome();
+        mostrarCaixaDeCodigo();
       } else {
         avisar('Não deu para salvar. Tente de novo.');
       }

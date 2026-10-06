@@ -51,14 +51,30 @@ Para testar, cole o endereço no navegador. Deve aparecer um texto começando co
 
 Cada navegador guarda um código aleatório, criado na primeira visita. Na primeira vez que alguém se escala com um nome, esse nome fica **ligado ao aparelho** que o usou. A partir daí:
 
-- O campo "Seu nome" mostra uma lista com os nomes já salvos. Os deste aparelho aparecem primeiro e podem ser escolhidos. Os de outras pessoas aparecem bloqueados, só para ninguém criar um nome repetido.
-- Outro aparelho não consegue se escalar com aquele nome. Maiúsculas, acentos e espaços a mais não enganam: "ígor  FERRAZ" conta como "Igor Ferraz".
+- O campo "Seu nome" mostra uma lista com os nomes já salvos: primeiro os deste aparelho, depois os de outras pessoas (marcados "outro aparelho"), para ninguém criar um nome repetido.
+- Outro aparelho não consegue se escalar com aquele nome sem o código de ligação (abaixo). Maiúsculas, acentos e espaços a mais não enganam: "ígor  FERRAZ" conta como "Igor Ferraz".
 - Um aparelho pode ter mais de um nome (por exemplo, um casal que divide o celular).
 - Se o aparelho tem um nome só, o campo já vem preenchido.
 
+### Usar o mesmo nome em mais de um aparelho (celular e PC, por exemplo)
+
+1. No aparelho que **já** usa o nome, escolha o nome e toque em **Usar este nome em outro aparelho**. Aparece um código de 6 números, que vale por 15 minutos.
+2. No aparelho **novo**, escolha o mesmo nome. Aparece uma caixa pedindo o código: digite e toque em **Ligar**.
+
+Pronto: os dois aparelhos usam o nome, veem as mesmas tarefas em "Minhas" e podem sair delas. Cada código serve uma vez só e deixa de valer depois de 5 tentativas erradas, para ninguém sair chutando números.
+
+### O que fica na planilha
+
 As ligações ficam na aba **Pessoas**, que o script cria sozinho na primeira vez que a página abrir depois da atualização. Quem já tinha se escalado antes entra nela automaticamente.
 
-**A pessoa trocou de celular, limpou o navegador ou quer usar o PC:** na aba **Pessoas**, apague a célula `token` da linha dela. O próximo aparelho que usar esse nome fica com ele, e passa também a poder sair das tarefas antigas. O aparelho anterior perde o nome. Por enquanto, um nome fica ligado a um aparelho por vez.
+| coluna | o que é |
+|---|---|
+| `nome` | o nome da pessoa |
+| `token` | os códigos dos aparelhos ligados ao nome, separados por espaço |
+| `desde` | quando o nome foi usado pela primeira vez |
+| `codigo`, `validade`, `tentativas` | o código de ligação em andamento. Ficam vazias quando não há nenhum |
+
+**A pessoa perdeu o celular ou limpou o navegador e não tem outro aparelho ligado:** apague a célula `token` da linha dela. O próximo aparelho que usar esse nome fica com ele, e passa também a poder sair das tarefas antigas.
 
 **Abrir pelo navegador de verdade:** o Instagram e alguns outros apps abrem links num navegador próprio, que guarda um código diferente do Chrome ou do Safari. Para não ter que liberar o nome toda vez, oriente o pessoal a abrir o link no navegador do celular (no menu ⋮ do app, "Abrir no navegador").
 
