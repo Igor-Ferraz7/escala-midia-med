@@ -57,6 +57,7 @@
   const botaoAtualizar = el('atualizar');
 
   let tarefas = [];
+  let pessoas = []; // [{ nome, seu }] vindos da aba Pessoas
   let filtro = 'todos';
   let jaRolou = false;
   let ocupado = false;
@@ -82,10 +83,107 @@
     gravar('escala-token', token);
   }
 
+  // ---------- Campo de nome com a lista de nomes salvos ----------
+
+  const sugestoes = el('sugestoes');
+  const MSG_NOME_DE_OUTRO = 'Esse nome está ligado a outro aparelho. Se for você, peça ao responsável para liberar na planilha.';
+  let ativa = -1; // posição destacada pelas setas do teclado
+
+  // "Ígor  ferraz" e "Igor Ferraz" contam como o mesmo nome (igual à planilha).
+  function chave(nome) {
+    return String(nome).normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/\s+/g, ' ').trim().toLowerCase();
+  }
+  function pessoaDoNome(nome) {
+    const k = chave(nome);
+    return k ? pessoas.find((p) => chave(p.nome) === k) : null;
+  }
+  function nomeDeOutro(nome) {
+    const p = pessoaDoNome(nome);
+    return !!p && !p.seu;
+  }
+
+  function conferirNome() {
+    erroNome.textContent = nomeDeOutro(campoNome.value) ? MSG_NOME_DE_OUTRO : '';
+  }
+
+  function abrirSugestoes() {
+    const k = chave(campoNome.value);
+    // Com o campo igual a um nome da lista, mostra tudo; enquanto digita, filtra.
+    const exato = pessoas.some((p) => chave(p.nome) === k);
+    const casa = (p) => exato || !k || chave(p.nome).includes(k);
+    const meus = pessoas.filter((p) => p.seu && casa(p));
+    const outros = pessoas.filter((p) => !p.seu && casa(p));
+    if (!meus.length && !outros.length) return fecharSugestoes();
+
+    const item = (p) => '<li class="sugestao" role="option" data-nome="' + esc(p.nome) + '"' +
+      (p.seu ? '' : ' aria-disabled="true"') + '><span>' + esc(p.nome) + '</span>' +
+      (p.seu ? '<small class="seu">este aparelho</small>' : '<small>outro aparelho</small>') + '</li>';
+    sugestoes.innerHTML =
+      (meus.length ? '<li class="sugestoes-grupo" role="presentation">Seus nomes</li>' + meus.map(item).join('') : '') +
+      (outros.length ? '<li class="sugestoes-grupo" role="presentation">Já usados por outras pessoas</li>' + outros.map(item).join('') : '');
+    ativa = -1;
+    sugestoes.hidden = false;
+    campoNome.setAttribute('aria-expanded', 'true');
+  }
+  function fecharSugestoes() {
+    sugestoes.hidden = true;
+    campoNome.setAttribute('aria-expanded', 'false');
+    ativa = -1;
+  }
+  function receberPessoas(lista) {
+    if (!Array.isArray(lista)) return;
+    pessoas = lista;
+    // Aparelho com um nome só: preenche sozinho, para a pessoa nem precisar digitar.
+    const meus = pessoas.filter((p) => p.seu);
+    if (!campoNome.value.trim() && meus.length === 1) {
+      campoNome.value = meus[0].nome;
+      gravar('escala-nome', meus[0].nome);
+    }
+    if (document.activeElement !== campoNome) conferirNome();
+  }
+  function escolherNome(nome) {
+    campoNome.value = nome;
+    gravar('escala-nome', nome);
+    fecharSugestoes();
+    conferirNome();
+  }
+
   campoNome.value = ler('escala-nome') || '';
   campoNome.addEventListener('input', () => {
-    erroNome.textContent = '';
     gravar('escala-nome', campoNome.value.trim());
+    conferirNome();
+    abrirSugestoes();
+  });
+  campoNome.addEventListener('focus', abrirSugestoes);
+  campoNome.addEventListener('blur', () => setTimeout(fecharSugestoes, 150));
+  campoNome.addEventListener('keydown', (ev) => {
+    const opcoes = Array.from(sugestoes.querySelectorAll('.sugestao:not([aria-disabled])'));
+    if (ev.key === 'Escape') return fecharSugestoes();
+    if (sugestoes.hidden || !opcoes.length) return;
+    if (ev.key === 'ArrowDown' || ev.key === 'ArrowUp') {
+      ev.preventDefault();
+      ativa = (ativa + (ev.key === 'ArrowDown' ? 1 : -1) + opcoes.length) % opcoes.length;
+      opcoes.forEach((o, i) => o.classList.toggle('ativa', i === ativa));
+      opcoes[ativa].scrollIntoView({ block: 'nearest' });
+    } else if (ev.key === 'Enter' && ativa >= 0) {
+      ev.preventDefault();
+      escolherNome(opcoes[ativa].dataset.nome);
+    }
+  });
+  // mousedown em vez de click: escolhe antes de o campo perder o foco e a lista fechar.
+  sugestoes.addEventListener('mousedown', (ev) => {
+    ev.preventDefault();
+    const li = ev.target.closest('.sugestao');
+    if (!li) return;
+    if (li.getAttribute('aria-disabled') === 'true') {
+      erroNome.textContent = MSG_NOME_DE_OUTRO;
+      return;
+    }
+    escolherNome(li.dataset.nome);
+  });
+  el('abrir-nomes').addEventListener('mousedown', (ev) => {
+    ev.preventDefault();
+    if (sugestoes.hidden) { campoNome.focus(); abrirSugestoes(); } else fecharSugestoes();
   });
 
   // ---------- Comunicação com a planilha ----------
@@ -113,21 +211,31 @@
     } catch (e) { /* recomeça */ }
     return TAREFAS_DEMO.map((t) => ({ id: t[0], data: t[1], tipo: t[2], tarefa: t[3], detalhe: t[4], marca: t[5], nome: '', token: '' }));
   }
+  // No modo demonstração, o dono de cada nome é o aparelho que se escalou com ele primeiro.
+  function demoDonos(base) {
+    const donos = {};
+    base.forEach((t) => { if (t.nome && !donos[chave(t.nome)]) donos[chave(t.nome)] = { nome: t.nome, token: t.token }; });
+    return donos;
+  }
   function demoListar() {
     const base = demoBase();
+    const donos = demoDonos(base);
     return {
       ok: true,
-      tarefas: base.map((t) => ({ id: t.id, data: t.data, tipo: t.tipo, tarefa: t.tarefa, detalhe: t.detalhe, marca: t.marca, nome: t.nome, seu: t.token === token }))
+      tarefas: base.map((t) => ({ id: t.id, data: t.data, tipo: t.tipo, tarefa: t.tarefa, detalhe: t.detalhe, marca: t.marca, nome: t.nome, seu: !!t.nome && t.token === token })),
+      pessoas: Object.values(donos).map((d) => ({ nome: d.nome, seu: d.token === token })).sort((a, b) => a.nome.localeCompare(b.nome, 'pt'))
     };
   }
   function demoAcao(acao, dados) {
     const base = demoBase();
     const t = base.find((x) => x.id === dados.id);
+    const dono = demoDonos(base)[chave(dados.nome || '')];
     let erro = null;
     if (!t) erro = 'tarefa_nao_existe';
     else if (acao === 'escalar') {
       if (t.nome) erro = 'ocupada';
-      else { t.nome = dados.nome; t.token = token; }
+      else if (dono && dono.token !== token) erro = 'nome_de_outro';
+      else { t.nome = dono ? dono.nome : dados.nome; t.token = token; }
     } else if (acao === 'desfazer') {
       if (t.token !== token) erro = 'nao_e_seu';
       else { t.nome = ''; t.token = ''; }
@@ -269,6 +377,7 @@
       const r = await buscar();
       if (r && r.ok) {
         tarefas = r.tarefas;
+        receberPessoas(r.pessoas);
         render();
       } else {
         throw new Error((r && r.erro) || 'resposta');
@@ -295,6 +404,11 @@
       campoNome.focus({ preventScroll: true });
       return;
     }
+    if (acao === 'escalar' && nomeDeOutro(nome)) {
+      erroNome.textContent = MSG_NOME_DE_OUTRO;
+      campoNome.scrollIntoView({ block: 'center', behavior: 'smooth' });
+      return;
+    }
     if (acao === 'desfazer' && !window.confirm('Sair de ' + descrever(tarefa) + '?')) return;
 
     ocupado = true;
@@ -303,12 +417,16 @@
     try {
       const r = await enviar(acao, { id: String(tarefa.id), nome: nome });
       if (r && Array.isArray(r.tarefas)) tarefas = r.tarefas;
+      if (r) receberPessoas(r.pessoas);
       if (r && r.ok) {
         avisar(acao === 'escalar' ? 'Pronto, você ficou com ' + descrever(tarefa) + '.' : 'Você saiu de ' + descrever(tarefa) + '.');
       } else if (r && r.erro === 'ocupada') {
         avisar('Alguém pegou essa vaga antes de você.');
       } else if (r && r.erro === 'nao_e_seu') {
-        avisar('Só dá para sair pelo mesmo aparelho em que você se escalou.');
+        avisar('Só dá para sair pelo aparelho ligado a esse nome.');
+      } else if (r && r.erro === 'nome_de_outro') {
+        erroNome.textContent = MSG_NOME_DE_OUTRO;
+        avisar('Esse nome está ligado a outro aparelho.');
       } else {
         avisar('Não deu para salvar. Tente de novo.');
       }

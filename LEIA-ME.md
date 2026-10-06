@@ -45,7 +45,24 @@ Para testar, cole o endereço no navegador. Deve aparecer um texto começando co
 
 - **Ver quem pegou o quê:** abra a planilha. A coluna `nome` mostra quem está em cada tarefa, e `quando` mostra a hora em que a pessoa se escalou.
 - **Tirar ou trocar alguém:** apague ou mude o nome direto na coluna `nome`. A página mostra a mudança na próxima atualização (ela atualiza sozinha a cada minuto e toda vez que a pessoa volta para a aba).
-- **Quem pode sair de uma tarefa pela página:** só quem se escalou, e pelo mesmo aparelho. Se a pessoa trocar de celular ou limpar o navegador, você tira o nome dela pela planilha.
+- **Quem pode sair de uma tarefa pela página:** só o aparelho ligado àquele nome (veja abaixo).
+
+## Nomes e aparelhos
+
+Cada navegador guarda um código aleatório, criado na primeira visita. Na primeira vez que alguém se escala com um nome, esse nome fica **ligado ao aparelho** que o usou. A partir daí:
+
+- O campo "Seu nome" mostra uma lista com os nomes já salvos. Os deste aparelho aparecem primeiro e podem ser escolhidos. Os de outras pessoas aparecem bloqueados, só para ninguém criar um nome repetido.
+- Outro aparelho não consegue se escalar com aquele nome. Maiúsculas, acentos e espaços a mais não enganam: "ígor  FERRAZ" conta como "Igor Ferraz".
+- Um aparelho pode ter mais de um nome (por exemplo, um casal que divide o celular).
+- Se o aparelho tem um nome só, o campo já vem preenchido.
+
+As ligações ficam na aba **Pessoas**, que o script cria sozinho na primeira vez que a página abrir depois da atualização. Quem já tinha se escalado antes entra nela automaticamente.
+
+**A pessoa trocou de celular, limpou o navegador ou quer usar o PC:** na aba **Pessoas**, apague a célula `token` da linha dela. O próximo aparelho que usar esse nome fica com ele, e passa também a poder sair das tarefas antigas. O aparelho anterior perde o nome. Por enquanto, um nome fica ligado a um aparelho por vez.
+
+**Abrir pelo navegador de verdade:** o Instagram e alguns outros apps abrem links num navegador próprio, que guarda um código diferente do Chrome ou do Safari. Para não ter que liberar o nome toda vez, oriente o pessoal a abrir o link no navegador do celular (no menu ⋮ do app, "Abrir no navegador").
+
+IP e MAC não servem para isso. O navegador nunca entrega o MAC para um site, e o script do Google não recebe o IP. Mesmo que recebesse, todo mundo no Wi-Fi da igreja sairia com o mesmo IP.
 
 ## Montar o próximo mês
 
@@ -67,4 +84,6 @@ O mês que aparece no topo da página é calculado pela primeira data da lista, 
 
 ## Se mudar o código do script
 
-Depois de editar o `Codigo.gs`, vá em **Implantar → Gerenciar implantações → (lápis) → Versão: Nova versão → Implantar**. Assim o endereço continua o mesmo e o `config.js` não precisa mudar.
+Depois de editar o `Codigo.gs`, cole o arquivo inteiro no editor do Apps Script, salve e vá em **Implantar → Gerenciar implantações → (lápis) → Versão: Nova versão → Implantar**. Assim o endereço continua o mesmo e o `config.js` não precisa mudar.
+
+Só salvar o código **não** atualiza o site: sem a "Nova versão", o endereço `/exec` continua rodando o código antigo.

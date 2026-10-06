@@ -27,10 +27,17 @@
         Modo demonstração: as escolhas ficam salvas só neste aparelho. Para valer para todos, coloque o endereço da planilha no arquivo <code>config.js</code>.
       </p>
 
-      <label class="campo-nome">
-        <span>Seu nome</span>
-        <input id="nome" type="text" autocomplete="name" maxlength="40" placeholder="Maria Souza">
-      </label>
+      <div class="campo-nome">
+        <label for="nome">Seu nome</label>
+        <div class="combo">
+          <input id="nome" type="text" autocomplete="off" maxlength="40" placeholder="Maria Souza"
+                 role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="sugestoes">
+          <button type="button" id="abrir-nomes" class="combo-seta" aria-label="Mostrar nomes salvos" tabindex="-1">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>
+          </button>
+          <ul id="sugestoes" class="sugestoes" role="listbox" hidden></ul>
+        </div>
+      </div>
       <p id="erro-nome" class="erro" role="alert"></p>
 
       <div class="filtros" id="filtros">
