@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#ffffff">
+  <title>Escala da Mídia</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="estilo.css">
+</head>
+<body>
+  <main class="app">
+    <header class="topo">
+      <div>
+        <h1>Escala da mídia</h1>
+        <p class="mes" id="mes">&nbsp;</p>
+      </div>
+      <button id="atualizar" class="icone" type="button" aria-label="Atualizar escala">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 11a8.1 8.1 0 0 0-15.5-2M4 5v4h4"/><path d="M4 13a8.1 8.1 0 0 0 15.5 2M20 19v-4h-4"/></svg>
+      </button>
+    </header>
+
+    <p id="aviso-demo" class="aviso-demo" hidden>
+      Modo demonstração: as escolhas ficam salvas só neste aparelho. Para valer para todos, coloque o endereço da planilha no arquivo <code>config.js</code>.
+    </p>
+
+    <label class="campo-nome">
+      <span>Seu nome</span>
+      <input id="nome" type="text" autocomplete="name" maxlength="40" placeholder="Maria Souza">
+    </label>
+    <p id="erro-nome" class="erro" role="alert"></p>
+
+    <div class="filtros" id="filtros">
+      <button type="button" class="filtro" data-filtro="todos" aria-pressed="true">Todos</button>
+      <button type="button" class="filtro" data-filtro="livres" aria-pressed="false">Vagas livres</button>
+      <button type="button" class="filtro" data-filtro="minhas" aria-pressed="false">Minhas</button>
+    </div>
+
+    <div class="progresso">
+      <div class="progresso-texto"><span id="preenchidas">&nbsp;</span><span id="minhas"></span></div>
+      <div class="barra"><div id="barra"></div></div>
+    </div>
+
+    <div id="lista" aria-live="polite">
+      <p class="vazio">Carregando a escala…</p>
+    </div>
+
+    <details class="orientacoes">
+      <summary>Orientações</summary>
+      <ul>
+        <li>Mande a gravação um dia antes, para a mídia ter tempo de editar.</li>
+        <li>Quem gravar o devocional também manda a música da semana, que sai às quartas.</li>
+        <li>Os versículos são um norte: o líder pode mudar a mensagem dentro do tema.</li>
+        <li>Vídeos curtos, de no máximo 1 minuto.</li>
+        <li>As postagens saem às 9h, 12h e 15h. Se mudar a sala ou o local (por causa de chuva, por exemplo), a postagem sai em outro horário.</li>
+        <li>Os devocionais são gravados pelo grupo do Staff.</li>
+        <li>A escala é rotativa, para não pesar para ninguém.</li>
+      </ul>
+    </details>
+  </main>
+
+  <div id="toast" class="toast" role="status"></div>
+
+  <script src="config.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
