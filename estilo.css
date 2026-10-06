@@ -31,10 +31,16 @@ button:focus-visible, input:focus-visible, summary:focus-visible {
 }
 
 .app {
+  display: flex;
+  flex-direction: column;
   max-width: 560px;
   margin: 0 auto;
   padding: 20px 16px calc(48px + env(safe-area-inset-bottom));
 }
+/* No celular o painel não existe como caixa: os itens dele entram direto na coluna,
+   e as orientações vão para o fim, depois da lista. No PC ele vira a coluna lateral. */
+.painel { display: contents; }
+.orientacoes { order: 1; }
 
 .topo { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; }
 h1 { font-size: 24px; font-weight: 500; margin: 0; line-height: 1.15; letter-spacing: -0.01em; }
@@ -139,3 +145,61 @@ input:focus { border-color: var(--destaque); outline: none; box-shadow: 0 0 0 3p
   transition: opacity 0.25s ease, transform 0.25s ease;
 }
 .toast.ver { opacity: 1; transform: translate(-50%, 0); }
+
+/* Mouse: realce ao passar por cima (no celular não existe "passar por cima"). */
+@media (hover: hover) {
+  .quero:hover { background: var(--destaque-escuro); }
+  .voce:hover { background: #cfeedd; }
+  .filtro:hover:not([aria-pressed="true"]), .icone:hover { background: #f5f6f8; }
+}
+
+/* Tablet: cada semana vira um cartão, e o nome fica ao lado dos filtros. */
+@media (min-width: 720px) {
+  .app { max-width: 760px; padding: 32px 32px 64px; }
+  .app {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-auto-flow: row dense; /* deixa os filtros subirem para a linha do nome */
+    column-gap: 16px;
+    align-items: start;
+  }
+  .topo, .aviso-demo, .erro, .progresso, .lista, .orientacoes { grid-column: 1 / -1; }
+  .campo-nome { grid-column: 1; }
+  .filtros { grid-column: 2; align-self: end; position: static; margin: 0; padding: 0; }
+  h1 { font-size: 28px; }
+  .filtro { height: 44px; padding: 0 16px; }
+  .progresso { margin-top: 4px; }
+
+  .semana {
+    margin-top: 16px; padding: 4px 20px;
+    border: 1px solid var(--linha); border-radius: 16px;
+  }
+  .semana-titulo { margin: 14px 0 4px; }
+  .semana .linha:last-child { border-bottom: 0; }
+  .linha { padding: 14px 0; }
+}
+
+/* PC: painel fixo à esquerda (nome, filtros, progresso e orientações) e a escala à direita. */
+@media (min-width: 1024px) {
+  .app {
+    max-width: 1160px;
+    display: grid;
+    grid-template-columns: 340px minmax(0, 1fr);
+    gap: 40px;
+    align-items: start;
+    padding: 40px 40px 64px;
+  }
+  .lista { grid-column: 2; }
+  .painel {
+    grid-column: 1;
+    display: block;
+    position: sticky; top: 32px;
+    max-height: calc(100vh - 64px); overflow-y: auto;
+  }
+  .filtros { flex-wrap: wrap; margin-top: 4px; }
+  .filtro { height: 36px; }
+  .progresso { margin-top: 16px; }
+  .orientacoes { margin-top: 24px; }
+  .lista > .semana:first-child { margin-top: 0; }
+  .semana { scroll-margin-top: 32px; }
+}
