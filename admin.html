@@ -1,0 +1,125 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#ffffff">
+  <meta name="robots" content="noindex">
+  <title>Escala da Mídia · Responsável</title>
+  <link rel="icon" href="icone-192.png" type="image/png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="estilo.css">
+</head>
+<body>
+  <main class="app adm">
+    <header class="topo">
+      <div>
+        <h1>Área do responsável</h1>
+        <p class="mes">Escala da mídia</p>
+      </div>
+      <div class="topo-acoes">
+        <button id="sair" class="botao-secundario" type="button" hidden>Sair</button>
+        <a class="icone" href="./" aria-label="Voltar para a escala">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 6l-6 6 6 6"/></svg>
+        </a>
+      </div>
+    </header>
+
+    <!-- Entrada com senha. A senha é conferida pela planilha, nunca pela página. -->
+    <form id="form-entrar" class="adm-entrar" hidden>
+      <label for="senha">Senha</label>
+      <input id="senha" type="password" autocomplete="current-password" required>
+      <p id="erro-entrar" class="erro" role="alert"></p>
+      <button type="submit" class="botao-primario">Entrar</button>
+    </form>
+
+    <p id="carregando" class="vazio">Carregando…</p>
+
+    <section id="painel-adm" hidden>
+      <div class="adm-abas" role="tablist">
+        <button type="button" class="filtro" data-aba="tarefas" aria-pressed="true">Tarefas</button>
+        <button type="button" class="filtro" data-aba="pessoas" aria-pressed="false">Pessoas</button>
+        <button type="button" class="filtro" data-aba="geral" aria-pressed="false">Geral</button>
+      </div>
+
+      <div id="aba-tarefas">
+        <div class="adm-barra">
+          <p id="resumo-tarefas"></p>
+          <button type="button" id="nova-tarefa" class="botao-primario">+ Nova tarefa</button>
+        </div>
+        <div id="lista-adm"></div>
+      </div>
+
+      <div id="aba-pessoas" hidden>
+        <div class="adm-barra">
+          <p>Cada nome fica ligado aos aparelhos que o usam. "Desligar aparelhos" deixa o próximo aparelho que usar o nome ficar com ele.</p>
+        </div>
+        <div id="lista-pessoas"></div>
+      </div>
+
+      <div id="aba-geral" hidden>
+        <div class="cartao">
+          <h2>Lembretes</h2>
+          <div id="estado-lembretes"></div>
+        </div>
+        <div class="cartao">
+          <h2>Tirar todos das tarefas</h2>
+          <p>Deixa todas as vagas livres de novo. As tarefas continuam como estão.</p>
+          <button type="button" id="limpar-inscricoes" class="botao-perigo">Tirar todos das tarefas</button>
+        </div>
+        <div class="cartao">
+          <h2>Apagar todas as tarefas</h2>
+          <p>Para começar um mês novo do zero. Apaga as tarefas e quem estava nelas. Não dá para desfazer.</p>
+          <button type="button" id="apagar-tarefas" class="botao-perigo">Apagar todas as tarefas</button>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <dialog id="dialogo-tarefa" class="dialogo" aria-labelledby="titulo-tarefa">
+    <form id="form-tarefa" method="dialog" novalidate>
+      <div class="dialogo-topo">
+        <h2 id="titulo-tarefa">Nova tarefa</h2>
+        <button type="button" class="icone" data-fechar aria-label="Fechar">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>
+        </button>
+      </div>
+      <div class="dialogo-corpo">
+        <div class="form-grade">
+          <div class="campo"><label for="t-data">Data</label><input id="t-data" type="date" required></div>
+          <div class="campo"><label for="t-hora">Horário do prazo (opcional)</label><input id="t-hora" type="time"></div>
+          <div class="campo"><label for="t-tipo">Tipo</label>
+            <select id="t-tipo">
+              <option value="culto">Culto</option>
+              <option value="resumo">Resumo</option>
+              <option value="musica">Música</option>
+              <option value="devocional">Devocional</option>
+              <option value="oracao">Oração</option>
+              <option value="momento">Momento de fé</option>
+              <option value="aviso">Aviso</option>
+            </select>
+          </div>
+          <div class="campo"><label for="t-tarefa">Nome da tarefa</label><input id="t-tarefa" type="text" maxlength="60" placeholder="Culto"></div>
+          <div class="campo inteiro"><label for="t-detalhe">Detalhe (opcional)</label><input id="t-detalhe" type="text" maxlength="160" placeholder="Postagem no insta e whats"></div>
+          <div class="campo"><label for="t-marca">Etiqueta da semana (opcional)</label><input id="t-marca" type="text" maxlength="30" placeholder="Saco cheio"></div>
+          <div class="campo"><label for="t-nome">Quem está escalado (opcional)</label><input id="t-nome" type="text" maxlength="40" list="nomes-adm" autocomplete="off"></div>
+        </div>
+        <datalist id="nomes-adm"></datalist>
+        <p class="dica" id="dica-hora"></p>
+        <p id="erro-tarefa" class="erro" role="alert"></p>
+      </div>
+      <div class="dialogo-acoes">
+        <button type="submit" id="salvar-tarefa" class="botao-primario">Salvar</button>
+        <button type="button" class="botao-secundario" data-fechar>Cancelar</button>
+      </div>
+    </form>
+  </dialog>
+
+  <div id="toast" class="toast" role="status"></div>
+
+  <script src="config.js"></script>
+  <script src="admin.js"></script>
+</body>
+</html>

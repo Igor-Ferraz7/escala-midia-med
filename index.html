@@ -5,6 +5,11 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="#ffffff">
   <title>Escala da Mídia</title>
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="icone-192.png" type="image/png">
+  <link rel="apple-touch-icon" href="apple-touch-icon.png">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="Escala">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500&display=swap" rel="stylesheet">
@@ -18,9 +23,14 @@
           <h1>Escala da mídia</h1>
           <p class="mes" id="mes">&nbsp;</p>
         </div>
-        <button id="atualizar" class="icone" type="button" aria-label="Atualizar escala">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 11a8.1 8.1 0 0 0-15.5-2M4 5v4h4"/><path d="M4 13a8.1 8.1 0 0 0 15.5 2M20 19v-4h-4"/></svg>
-        </button>
+        <div class="topo-acoes">
+          <button id="abrir-lembretes" class="icone" type="button" aria-label="Lembretes">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 5a2 2 0 1 1 4 0a7 7 0 0 1 4 6v3a4 4 0 0 0 2 3H4a4 4 0 0 0 2-3v-3a7 7 0 0 1 4-6"/><path d="M9 17v1a3 3 0 0 0 6 0v-1"/></svg>
+          </button>
+          <button id="atualizar" class="icone" type="button" aria-label="Atualizar escala">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 11a8.1 8.1 0 0 0-15.5-2M4 5v4h4"/><path d="M4 13a8.1 8.1 0 0 0 15.5 2M20 19v-4h-4"/></svg>
+          </button>
+        </div>
       </header>
 
       <p id="aviso-demo" class="aviso-demo" hidden>
@@ -64,6 +74,11 @@
           <li>A escala é rotativa, para não pesar para ninguém.</li>
         </ul>
       </details>
+
+      <a class="botao-adm" href="admin.html">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>
+        Área do responsável
+      </a>
     </aside>
 
     <div id="lista" class="lista" aria-live="polite">
@@ -71,9 +86,45 @@
     </div>
   </main>
 
+  <dialog id="dialogo-lembretes" class="dialogo" aria-labelledby="titulo-lembretes">
+    <div class="dialogo-topo">
+      <h2 id="titulo-lembretes">Lembretes</h2>
+      <button type="button" class="icone" data-fechar aria-label="Fechar">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>
+      </button>
+    </div>
+    <div class="dialogo-corpo">
+      <p id="lembretes-status" class="status"></p>
+
+      <div class="aviso-notificacao">
+        <p><b>Para os lembretes chegarem</b></p>
+        <ul>
+          <li>As notificações do navegador precisam estar <b>permitidas</b> para este site. Quando o navegador perguntar, toque em <b>Permitir</b>.</li>
+          <li>No <b>iPhone ou iPad</b>: primeiro adicione a escala à Tela de Início (botão Compartilhar → <b>Adicionar à Tela de Início</b>) e abra por esse ícone. Precisa do iOS 16.4 ou mais novo.</li>
+          <li>Abra pelo Chrome, Safari, Firefox ou Edge. O navegador de dentro do Instagram ou do WhatsApp não recebe notificações.</li>
+          <li>Vale só para este aparelho. Para receber em outro, ative lá também.</li>
+          <li>O aviso pode chegar até 5 minutos depois do horário. Economia de bateria e o modo Não perturbe podem atrasar ou esconder.</li>
+        </ul>
+      </div>
+
+      <h3 class="subtitulo">Quando avisar</h3>
+      <p class="dica">O prazo de cada tarefa é o horário dela. Tarefa sem horário vale até as <span id="hora-padrao">09:00</span>.</p>
+      <div id="lembretes-regras" class="regras"></div>
+      <button type="button" id="lembrete-adicionar" class="botao-secundario">+ Adicionar lembrete</button>
+      <p id="lembretes-erro" class="erro" role="alert"></p>
+      <p id="lembretes-ok" class="sucesso" role="status"></p>
+    </div>
+    <div class="dialogo-acoes">
+      <button type="button" id="lembretes-salvar" class="botao-primario">Ativar lembretes</button>
+      <button type="button" id="lembretes-testar" class="botao-secundario" hidden>Enviar teste</button>
+      <button type="button" id="lembretes-desligar" class="link" hidden>Desligar neste aparelho</button>
+    </div>
+  </dialog>
+
   <div id="toast" class="toast" role="status"></div>
 
   <script src="config.js"></script>
   <script src="app.js"></script>
+  <script src="lembretes.js"></script>
 </body>
 </html>

@@ -5,8 +5,10 @@ Página onde cada pessoa da mídia escolhe em quais tarefas do mês quer ficar. 
 ## Como as partes se ligam
 
 - **A página** (`index.html`, `estilo.css`, `app.js`, `config.js`) é o que as pessoas abrem no celular.
-- **A planilha** guarda as tarefas e quem pegou cada uma.
-- **O script** (`apps-script/Codigo.gs`) fica dentro da planilha. Quando a página pergunta "quais são as tarefas?" ou pede "coloca a Maria no dia 8", é ele que lê e escreve na planilha.
+- **Os lembretes** (`lembretes.js`, `sw.js`, `manifest.webmanifest` e os ícones `.png`): a janela do sino e a parte que recebe as notificações com a página fechada.
+- **A área do responsável** (`admin.html`, `admin.js`): criar, editar e apagar tarefas, tirar pessoas, cuidar dos nomes. Pede senha.
+- **A planilha** guarda as tarefas, os nomes e os lembretes.
+- **O script** (`apps-script/Codigo.gs`) fica dentro da planilha. Quando a página pergunta "quais são as tarefas?" ou pede "coloca a Maria no dia 8", é ele que lê e escreve na planilha. Ele também confere a senha do responsável e envia as notificações.
 
 Enquanto o `config.js` estiver sem endereço, a página funciona em **modo demonstração**: ela salva só no próprio aparelho. Serve para testar.
 
@@ -36,10 +38,62 @@ Para testar, cole o endereço no navegador. Deve aparecer um texto começando co
 ## Parte 2 — Publicar no GitHub Pages (uns 5 minutos)
 
 1. No GitHub, crie um repositório novo e **público**, por exemplo `escala-midia`.
-2. Clique em **Add file → Upload files** e arraste `index.html`, `estilo.css`, `app.js`, `config.js` e `LEIA-ME.md`. A pasta `apps-script` não precisa subir, mas pode.
+2. Clique em **Add file → Upload files** e arraste todos os arquivos da pasta (páginas, `.js`, `.css`, `.png`, `manifest.webmanifest` e `LEIA-ME.md`). A pasta `apps-script` não precisa subir, mas pode.
 3. Clique em **Commit changes**.
 4. Vá em **Settings → Pages**. Em "Branch", escolha **main** e a pasta **/ (root)**, e salve.
 5. Em um ou dois minutos o endereço aparece no topo dessa tela: `https://SEU-USUARIO.github.io/escala-midia/`. É esse link que você manda no grupo.
+
+## Parte 3 — Senha do responsável e lembretes (uma vez só)
+
+Faça depois de colar a versão do `Codigo.gs` que tem administração e lembretes.
+
+1. **Confira o projeto.** No Apps Script, abra **Configurações do projeto** (engrenagem, à esquerda):
+   - "Ativar o ambiente de execução do Chrome V8" precisa estar **marcado**. Os lembretes usam contas que só existem nele.
+   - O **fuso horário** precisa ser `(GMT-03:00) Horário de Brasília` (ou o da cidade). É por ele que o script sabe quando é "20:00".
+2. **Cadastre a senha.** Ainda em Configurações do projeto, desça até **Propriedades do script → Adicionar propriedade**:
+   - Propriedade: `SENHA_ADMIN`
+   - Valor: a senha da área do responsável
+   - Clique em **Salvar propriedades do script**.
+
+   A senha fica só aí. Ela **não** vai no código nem no GitHub, porque o código é público e qualquer pessoa poderia ler. Para trocar a senha, é só editar esse valor (vale na hora, sem implantar de novo).
+3. **Ligue os lembretes.** Volte ao editor, escolha a função **configurarLembretes** na barra de cima e clique em **Executar**. O Google vai pedir autorização de novo, porque agora o script envia notificações e roda sozinho a cada 5 minutos. Autorize do mesmo jeito da Parte 1.
+4. **Implante a versão nova:** **Implantar → Gerenciar implantações → (lápis) → Versão: Nova versão → Implantar**.
+
+Para conferir: abra a área do responsável, entre com a senha e veja a aba **Geral**. Ela deve dizer "Lembretes ligados".
+
+## Área do responsável
+
+No fim da página da escala tem o botão **Área do responsável**. Depois de entrar com a senha, dá para:
+
+- **Tarefas:** criar, editar e excluir tarefas; mudar data, horário, tipo, detalhe e etiqueta da semana; escalar alguém escrevendo o nome; tirar a pessoa de uma tarefa.
+- **Pessoas:** ver os nomes e quantos aparelhos cada um tem; **desligar os aparelhos** de um nome (o próximo aparelho que usar o nome fica com ele); excluir um nome.
+- **Geral:** ver se os lembretes estão ligados; **tirar todos das tarefas** (as vagas ficam livres); **apagar todas as tarefas** (para começar um mês do zero, pede para digitar APAGAR).
+
+A entrada vale por 6 horas, ou até fechar a aba. Depois de 8 senhas erradas seguidas, a entrada fica bloqueada por 15 minutos, para ninguém ficar chutando.
+
+Quando o responsável escala alguém pelo nome, o primeiro aparelho que usar aquele nome na página fica ligado a ele e enxerga a tarefa como sua.
+
+## Lembretes
+
+Cada pessoa toca no **sino**, ao lado do botão de atualizar, escolhe quando quer ser avisada e toca em **Ativar lembretes**. Dá para ter até 5 lembretes, misturando:
+
+- **Dias antes, num horário:** por exemplo, 1 dia antes às 20:00. Com 0, avisa no próprio dia.
+- **Horas ou minutos antes do prazo:** por exemplo, 2 horas antes.
+- **Toda semana, num dia fixo:** por exemplo, todo domingo às 18:00, com o resumo das tarefas dos próximos 7 dias.
+
+O **prazo** de uma tarefa é o horário dela. Tarefa sem horário vale até as 09:00 (o primeiro horário de postagem). O horário de cada tarefa se ajusta na área do responsável.
+
+O botão **Enviar teste** manda uma notificação na hora, para a pessoa conferir se está chegando.
+
+O que a pessoa precisa saber (a janela do sino mostra tudo isso):
+
+- O navegador precisa ter as notificações **permitidas** para o site.
+- No **iPhone e iPad**, só funciona com a escala adicionada à **Tela de Início** (Compartilhar → Adicionar à Tela de Início) e aberta por esse ícone, no iOS 16.4 ou mais novo. É uma regra da Apple.
+- O navegador de dentro do Instagram ou do WhatsApp não recebe notificações.
+- Vale por aparelho: quem quiser no celular e no PC ativa nos dois.
+- O aviso chega com até 5 minutos de diferença, porque o script confere a cada 5 minutos.
+
+Como funciona por dentro: a planilha guarda as regras de cada aparelho na aba **Lembretes**. A cada 5 minutos, o script vê quais avisos caem naquele intervalo e "cutuca" o serviço de notificação do navegador (do Google, da Apple, da Mozilla ou da Microsoft). O celular acorda a parte da página que fica de plantão (`sw.js`), que busca o texto na planilha e mostra a notificação. Nenhum serviço de fora precisa de conta ou cadastro.
 
 ## Como usar no dia a dia
 
@@ -82,7 +136,9 @@ IP e MAC não servem para isso. O navegador nunca entrega o MAC para um site, e 
 
 ## Montar o próximo mês
 
-Na aba **Escala**, apague as linhas de outubro (deixe a primeira linha, com os títulos) e preencha as novas tarefas:
+O jeito mais fácil é pela **área do responsável**: em Geral, "Apagar todas as tarefas", e depois "+ Nova tarefa" para cada dia.
+
+Também dá para fazer direto na planilha. Na aba **Escala**, apague as linhas do mês anterior (deixe a primeira linha, com os títulos) e preencha as novas tarefas:
 
 | coluna | o que colocar |
 |---|---|
@@ -92,6 +148,7 @@ Na aba **Escala**, apague as linhas de outubro (deixe a primeira linha, com os t
 | `tarefa` | o nome que aparece em destaque, como "Culto" |
 | `detalhe` | a linha de baixo, como o tema e o versículo. Pode ficar vazia |
 | `marca` | uma etiqueta para a semana, como "Saco cheio". Pode ficar vazia |
+| `hora` | o horário do prazo, como `19:30`. Vazia vale 09:00 |
 | `nome`, `token`, `quando` | deixe vazias. A página preenche |
 
 A coluna `token` fica escondida. É um código aleatório que identifica o aparelho de quem se escalou e permite que essa pessoa saia da tarefa depois.

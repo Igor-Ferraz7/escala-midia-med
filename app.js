@@ -377,10 +377,11 @@
     const passou = d < agora;
     const ehHoje = d.getTime() === agora.getTime();
     const cor = CORES[t.tipo] || CORES.aviso;
+    const detalhe = [t.detalhe, t.hora ? 'até ' + t.hora : ''].filter(Boolean).join(' · ');
     return '<div class="linha' + (passou ? ' passado' : '') + (ehHoje ? ' hoje' : '') + '">' +
       '<div class="data"><b>' + d.getDate() + '</b><small>' + (ehHoje ? 'hoje' : DIAS[d.getDay()]) + '</small></div>' +
       '<div class="info"><div class="titulo"><span class="ponto" style="background:' + cor + '"></span>' + esc(t.tarefa) + '</div>' +
-      (t.detalhe ? '<div class="detalhe">' + esc(t.detalhe) + '</div>' : '') + '</div>' +
+      (detalhe ? '<div class="detalhe">' + esc(detalhe) + '</div>' : '') + '</div>' +
       '<div class="acao">' + botaoDaTarefa(t, passou) + '</div></div>';
   }
 
@@ -475,6 +476,7 @@
         tarefas = r.tarefas;
         receberPessoas(r.pessoas);
         render();
+        publicar(r);
       } else {
         throw new Error((r && r.erro) || 'resposta');
       }
@@ -545,6 +547,19 @@
   botaoAtualizar.addEventListener('click', () => carregar(true));
   document.addEventListener('visibilitychange', () => { if (!document.hidden) carregar(false); });
   setInterval(() => { if (!document.hidden) carregar(false); }, 60000);
+
+  // ---------- Ponte com os lembretes (lembretes.js) ----------
+
+  // A última resposta da planilha fica guardada e é anunciada, para os lembretes saberem
+  // a chave pública e as regras deste aparelho.
+  function publicar(r) {
+    window.Escala.ultimo = r;
+    document.dispatchEvent(new CustomEvent('escala:dados', { detail: r }));
+  }
+  window.Escala = { API: API, DEMO: DEMO, token: token, enviar: enviar, avisar: avisar, publicar: publicar, ultimo: null };
+
+  // O service worker recebe as notificações com a página fechada.
+  if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});
 
   if (DEMO) el('aviso-demo').hidden = false;
   carregar(false);

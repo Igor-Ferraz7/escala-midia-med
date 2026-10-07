@@ -195,11 +195,117 @@ input:focus { border-color: var(--destaque); outline: none; box-shadow: 0 0 0 3p
 }
 .toast.ver { opacity: 1; transform: translate(-50%, 0); }
 
+/* ---------- Botões e campos gerais ---------- */
+.topo-acoes { display: flex; gap: 8px; }
+.icone.ativo { color: var(--destaque); border-color: #bfd3fb; background: #f1f5ff; }
+.icone.pequeno { width: 32px; height: 32px; border-radius: 8px; }
+a.icone { text-decoration: none; }
+
+.botao-primario, .botao-secundario, .botao-perigo {
+  height: 44px; padding: 0 18px; border-radius: 12px; font-size: 15px;
+}
+.botao-primario { border: 0; background: var(--destaque); color: #fff; font-weight: 500; }
+.botao-secundario { border: 1px solid var(--borda-campo); background: var(--fundo); color: var(--texto); }
+.botao-perigo { border: 1px solid #f3c1bd; background: var(--fundo); color: var(--erro); }
+.botao-primario:disabled, .botao-secundario:disabled, .botao-perigo:disabled { opacity: 0.5; cursor: default; }
+
+select {
+  height: 44px; padding: 0 12px;
+  border: 1px solid var(--borda-campo); border-radius: 12px;
+  font: inherit; font-size: 16px; color: var(--texto); background: var(--fundo);
+}
+select:focus { border-color: var(--destaque); outline: none; box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15); }
+
+/* Botão para a área do responsável: discreto, no fim do painel. */
+.botao-adm {
+  order: 2; align-self: flex-start; justify-self: start;
+  display: inline-flex; align-items: center; gap: 8px;
+  margin-top: 16px; padding: 8px 14px;
+  border: 1px solid var(--linha); border-radius: 999px;
+  font-size: 14px; color: var(--suave); text-decoration: none;
+}
+
+/* ---------- Janela (lembretes, edição de tarefa) ---------- */
+.dialogo {
+  width: min(560px, calc(100% - 32px)); max-height: calc(100dvh - 32px);
+  padding: 0; border: 0; border-radius: 16px;
+  color: var(--texto); background: var(--fundo);
+  box-shadow: 0 20px 60px rgba(20, 22, 26, 0.25);
+}
+.dialogo[open] { display: flex; flex-direction: column; }
+.dialogo > form { display: flex; flex-direction: column; flex: 1; min-height: 0; }
+.dialogo::backdrop { background: rgba(20, 22, 26, 0.45); }
+.dialogo-topo { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 14px 14px 6px 20px; }
+.dialogo-topo h2 { margin: 0; font-size: 20px; font-weight: 500; }
+.dialogo-corpo { padding: 4px 20px 12px; overflow-y: auto; }
+.dialogo-acoes {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 8px;
+  padding: 12px 20px calc(14px + env(safe-area-inset-bottom));
+  border-top: 1px solid var(--linha);
+}
+/* No celular a janela sobe de baixo, ocupando a largura toda. */
+@media (max-width: 599px) {
+  .dialogo { width: 100%; max-width: 100%; max-height: 92dvh; margin: auto 0 0; border-radius: 16px 16px 0 0; }
+}
+
+.status { margin: 0 0 12px; padding: 10px 12px; border-radius: 12px; background: #f5f6f8; font-size: 14px; }
+.status.ok { background: var(--ok-fundo); color: var(--ok-texto); }
+.status.alerta { background: var(--marca-fundo); color: var(--marca-texto); }
+.aviso-notificacao { padding: 12px 14px; border: 1px solid var(--linha); border-radius: 12px; font-size: 13px; color: #374151; }
+.aviso-notificacao p { margin: 0; }
+.aviso-notificacao ul { margin: 6px 0 0; padding-left: 18px; }
+.aviso-notificacao li + li { margin-top: 4px; }
+.aviso-notificacao b, .dialogo b { font-weight: 500; }
+.subtitulo { margin: 18px 0 2px; font-size: 16px; font-weight: 500; }
+.dica { margin: 0 0 10px; font-size: 13px; color: var(--suave); }
+.sucesso { margin: 4px 0 0; font-size: 13px; color: var(--ok-texto); }
+.sucesso:empty { display: none; }
+
+.regras { display: flex; flex-direction: column; gap: 10px; margin-bottom: 10px; }
+.regra { padding: 10px 12px; border: 1px solid var(--linha); border-radius: 12px; }
+.regra-topo { display: flex; align-items: center; gap: 8px; }
+.regra-topo select { flex: 1; min-width: 0; }
+.regra-campos { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 8px; font-size: 14px; }
+.regra-campos input[type="number"] { width: 76px; }
+.regra-campos input[type="time"] { width: 140px; }
+.regra-campos small { flex-basis: 100%; font-size: 12px; color: var(--suave); }
+
+/* ---------- Área do responsável ---------- */
+.app.adm { display: block; max-width: 860px; }
+.adm-entrar { max-width: 360px; margin-top: 24px; }
+.adm-entrar label { display: block; margin-bottom: 6px; font-size: 13px; color: var(--suave); }
+.adm-entrar .botao-primario { width: 100%; margin-top: 12px; }
+.adm-abas { display: flex; gap: 8px; margin: 20px 0 4px; overflow-x: auto; }
+.adm-barra { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; margin-top: 14px; }
+.adm-barra p { margin: 0; font-size: 13px; color: var(--suave); }
+.adm-linha { display: flex; align-items: flex-start; gap: 12px; padding: 12px 0; border-bottom: 1px solid var(--linha); }
+.adm-linha .info { padding-top: 2px; }
+.adm-linha .quem-adm { margin-top: 4px; font-size: 13px; color: var(--ok-texto); }
+.adm-linha .quem-adm.vazio-adm { color: var(--suave); }
+.adm-acoes { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 6px; flex: none; max-width: 50%; }
+.mini {
+  height: 32px; padding: 0 10px; border-radius: 8px;
+  border: 1px solid var(--borda-campo); background: var(--fundo);
+  font-size: 13px; color: var(--texto);
+}
+.mini.perigo { border-color: #f3c1bd; color: var(--erro); }
+.cartao { margin-top: 16px; padding: 16px; border: 1px solid var(--linha); border-radius: 16px; }
+.cartao h2 { margin: 0 0 6px; font-size: 17px; font-weight: 500; }
+.cartao p { margin: 0 0 12px; font-size: 14px; color: #374151; }
+.cartao ol { margin: 0 0 4px; padding-left: 20px; font-size: 14px; color: #374151; }
+.cartao code { font-size: 13px; background: #f5f6f8; padding: 1px 5px; border-radius: 4px; }
+.form-grade { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 12px; }
+.form-grade .campo label { display: block; margin-bottom: 6px; font-size: 13px; color: var(--suave); }
+.form-grade .inteiro { grid-column: 1 / -1; }
+.form-grade select { width: 100%; }
+
 /* Mouse: realce ao passar por cima (no celular não existe "passar por cima"). */
 @media (hover: hover) {
   .quero:hover { background: var(--destaque-escuro); }
   .voce:hover { background: #cfeedd; }
-  .filtro:hover:not([aria-pressed="true"]), .icone:hover { background: #f5f6f8; }
+  .filtro:hover:not([aria-pressed="true"]), .icone:hover, .botao-secundario:hover, .mini:hover, .botao-adm:hover { background: #f5f6f8; }
+  .botao-perigo:hover, .mini.perigo:hover { background: #fdf0ef; }
+  .botao-primario:hover:not(:disabled) { background: var(--destaque-escuro); }
 }
 
 /* Tablet: cada semana vira um cartão, e o nome fica ao lado dos filtros. */
@@ -212,7 +318,7 @@ input:focus { border-color: var(--destaque); outline: none; box-shadow: 0 0 0 3p
     column-gap: 16px;
     align-items: start;
   }
-  .topo, .aviso-demo, .erro, .vinculo, .progresso, .lista, .orientacoes { grid-column: 1 / -1; }
+  .topo, .aviso-demo, .erro, .vinculo, .progresso, .lista, .orientacoes, .botao-adm { grid-column: 1 / -1; }
   .campo-nome { grid-column: 1; }
   .filtros { grid-column: 2; align-self: end; position: static; margin: 0; padding: 0; }
   h1 { font-size: 28px; }
