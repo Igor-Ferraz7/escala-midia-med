@@ -80,7 +80,10 @@ function configurar() {
   const planilha = SpreadsheetApp.getActive();
   let aba = planilha.getSheetByName(NOME_ABA);
   if (aba && aba.getLastRow() > 1) {
-    throw new Error('A aba "' + NOME_ABA + '" já tem dados. Apague ou renomeie a aba antes de rodar de novo.');
+    // O editor do Apps Script já vem com "configurar" escolhida (é a primeira função do arquivo);
+    // quem cai aqui quase sempre queria outra função.
+    throw new Error('A aba "' + NOME_ABA + '" já existe, então não há nada para configurar (nada foi alterado). ' +
+      'Se você queria ligar os lembretes, escolha "configurarLembretes" na lista de funções, no alto do editor, e clique em Executar.');
   }
   if (!aba) aba = planilha.insertSheet(NOME_ABA);
 
