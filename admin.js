@@ -15,6 +15,7 @@
 
   let dados = null;   // { tarefas, pessoas, lembretes, horaPadrao }
   let editandoId = '';
+  const selecionadas = new Set(); // ids das tarefas marcadas para ação em massa
   let ocupado = false;
 
   // ---------- Armazenamento ----------
@@ -64,7 +65,7 @@
     if (r.adm) dados = r.adm;
     if (!r.ok) {
       if (r.adm || r.erro === 'tarefa_nao_existe' || r.erro === 'nome_nao_existe') desenhar();
-      throw { mensagem: ERROS[r.erro] || 'Não deu certo. Tente de novo.' };
+      throw { mensagem: ERROS[r.erro] || 'Não deu certo. Tente de novo.', codigo: r.erro };
     }
     return r;
   }
@@ -138,41 +139,89 @@
     el('nomes-adm').innerHTML = dados.pessoas.map((p) => '<option value="' + esc(p.nome) + '">').join('');
   }
 
+  // Ícones dos botões: lápis (editar), pessoa saindo (tirar) e lixeira (excluir).
+  const svg = (d) => '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + d + '</svg>';
+  const ICONE = {
+    editar: svg('<path d="M4 20h4L18.5 9.5a2.8 2.8 0 0 0-4-4L4 16v4"/><path d="M13.5 6.5l4 4"/>'),
+    tirar: svg('<circle cx="9" cy="7" r="4"/><path d="M3 21v-2a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v2"/><path d="M16 11h6"/>'),
+    excluir: svg('<path d="M4 7h16M10 11v6M14 11v6M5 7l1 12a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2l1-12M9 7V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v3"/>')
+  };
+
+  function semanaDe(texto) {
+    const d = paraData(texto);
+    const ini = new Date(d); ini.setDate(d.getDate() - d.getDay());
+    const fim = new Date(ini); fim.setDate(ini.getDate() + 6);
+    return { chave: ini.getFullYear() + '-' + (ini.getMonth() + 1) + '-' + ini.getDate(), ini: ini, fim: fim };
+  }
+
   function desenharTarefas() {
     const tarefas = dados.tarefas.slice().sort((a, b) => a.data.localeCompare(b.data) || Number(a.id) - Number(b.id));
+    // Tarefa que sumiu (excluída por outra pessoa, ou nesta ação) sai da seleção.
+    const existentes = new Set(tarefas.map((t) => t.id));
+    Array.from(selecionadas).forEach((id) => { if (!existentes.has(id)) selecionadas.delete(id); });
+
     const preenchidas = tarefas.filter((t) => t.nome).length;
     el('resumo-tarefas').textContent = tarefas.length
       ? tarefas.length + ' tarefas · ' + preenchidas + ' com alguém · ' + (tarefas.length - preenchidas) + ' livres'
       : 'Nenhuma tarefa ainda.';
 
-    let html = '';
-    let semanaAtual = '';
+    const semanas = [];
     tarefas.forEach((t) => {
-      const d = paraData(t.data);
-      const ini = new Date(d); ini.setDate(d.getDate() - d.getDay());
-      const fim = new Date(ini); fim.setDate(ini.getDate() + 6);
-      const chave = ini.toDateString();
-      if (chave !== semanaAtual) {
-        semanaAtual = chave;
-        const marcas = Array.from(new Set(tarefas.filter((x) => { const y = paraData(x.data); return y >= ini && y <= fim; }).map((x) => x.marca).filter(Boolean)));
-        html += '<div class="semana-titulo">' + ini.getDate() + ' ' + MESES[ini.getMonth()] + ' a ' + fim.getDate() + ' ' + MESES[fim.getMonth()] +
-          marcas.map((m) => '<span class="marca">' + esc(m) + '</span>').join('') + '</div>';
-      }
-      const detalhe = [t.detalhe, t.hora ? 'até ' + t.hora : ''].filter(Boolean).join(' · ');
-      html += '<div class="adm-linha">' +
-        '<div class="data"><b>' + d.getDate() + '</b><small>' + DIAS[d.getDay()] + '</small></div>' +
-        '<div class="info">' +
-          '<div class="titulo"><span class="ponto" style="background:' + (CORES[t.tipo] || CORES.aviso) + '"></span>' + esc(t.tarefa) + '</div>' +
-          (detalhe ? '<div class="detalhe">' + esc(detalhe) + '</div>' : '') +
-          '<div class="quem-adm' + (t.nome ? '' : ' vazio-adm') + '">' + (t.nome ? esc(t.nome) : 'Sem ninguém') + '</div>' +
-        '</div>' +
-        '<div class="adm-acoes">' +
-          '<button type="button" class="mini" data-editar="' + esc(t.id) + '">Editar</button>' +
-          (t.nome ? '<button type="button" class="mini" data-tirar="' + esc(t.id) + '">Tirar pessoa</button>' : '') +
-          '<button type="button" class="mini perigo" data-excluir="' + esc(t.id) + '">Excluir</button>' +
-        '</div></div>';
+      const s = semanaDe(t.data);
+      if (!semanas.length || semanas[semanas.length - 1].chave !== s.chave) semanas.push(Object.assign(s, { tarefas: [] }));
+      semanas[semanas.length - 1].tarefas.push(t);
     });
-    el('lista-adm').innerHTML = html;
+
+    el('lista-adm').innerHTML = semanas.map((s) => {
+      const marcas = Array.from(new Set(s.tarefas.map((x) => x.marca).filter(Boolean)));
+      return '<section class="adm-semana" data-semana="' + s.chave + '">' +
+        '<div class="semana-titulo">' + s.ini.getDate() + ' ' + MESES[s.ini.getMonth()] + ' a ' + s.fim.getDate() + ' ' + MESES[s.fim.getMonth()] +
+          marcas.map((m) => '<span class="marca">' + esc(m) + '</span>').join('') +
+          '<label class="marcar-semana"><input type="checkbox" data-marcar-semana="' + s.chave + '"> Marcar todos</label>' +
+        '</div>' +
+        s.tarefas.map((t) => {
+          const d = paraData(t.data);
+          const detalhe = [t.detalhe, t.hora ? 'até ' + t.hora : ''].filter(Boolean).join(' · ');
+          return '<div class="adm-linha" data-linha="' + esc(t.id) + '">' +
+            '<label class="sel-tarefa"><input type="checkbox" data-sel="' + esc(t.id) + '"' + (selecionadas.has(t.id) ? ' checked' : '') +
+              ' aria-label="Marcar ' + esc(t.tarefa) + ', ' + dataCurta(t.data) + '"></label>' +
+            '<div class="data"><b>' + d.getDate() + '</b><small>' + DIAS[d.getDay()] + '</small></div>' +
+            '<div class="info">' +
+              '<div class="titulo"><span class="ponto" style="background:' + (CORES[t.tipo] || CORES.aviso) + '"></span>' + esc(t.tarefa) + '</div>' +
+              (detalhe ? '<div class="detalhe">' + esc(detalhe) + '</div>' : '') +
+              '<div class="quem-adm' + (t.nome ? '' : ' vazio-adm') + '">' + (t.nome ? esc(t.nome) : 'Sem ninguém') + '</div>' +
+            '</div>' +
+            '<div class="adm-acoes">' +
+              '<button type="button" class="mini editar" data-editar="' + esc(t.id) + '">' + ICONE.editar + 'Editar</button>' +
+              (t.nome ? '<button type="button" class="mini tirar" data-tirar="' + esc(t.id) + '">' + ICONE.tirar + 'Tirar pessoa</button>' : '') +
+              '<button type="button" class="mini perigo" data-excluir="' + esc(t.id) + '">' + ICONE.excluir + 'Excluir</button>' +
+            '</div></div>';
+        }).join('') +
+        '</section>';
+    }).join('');
+    atualizarSelecao();
+  }
+
+  // Marca de cada semana (cheia, parcial ou vazia), destaque das linhas e barra de ações em massa.
+  function atualizarSelecao() {
+    document.querySelectorAll('.adm-semana').forEach((sec) => {
+      const caixas = Array.from(sec.querySelectorAll('[data-sel]'));
+      const marcadas = caixas.filter((c) => selecionadas.has(c.dataset.sel)).length;
+      const todas = sec.querySelector('[data-marcar-semana]');
+      todas.checked = marcadas > 0 && marcadas === caixas.length;
+      todas.indeterminate = marcadas > 0 && marcadas < caixas.length;
+      caixas.forEach((c) => {
+        c.checked = selecionadas.has(c.dataset.sel);
+        c.closest('.adm-linha').classList.toggle('selecionada', c.checked);
+      });
+    });
+    const marcadas = dados ? dados.tarefas.filter((t) => selecionadas.has(t.id)) : [];
+    const comPessoa = marcadas.filter((t) => t.nome).length;
+    el('barra-massa').hidden = !marcadas.length;
+    el('qtd-sel').textContent = marcadas.length === 1 ? '1 tarefa marcada' : marcadas.length + ' tarefas marcadas';
+    el('massa-tirar').hidden = !comPessoa;
+    el('massa-tirar').innerHTML = ICONE.tirar + 'Tirar ' + (comPessoa === 1 ? 'a pessoa' : comPessoa + ' pessoas');
+    el('massa-excluir').innerHTML = ICONE.excluir + 'Excluir ' + (marcadas.length === 1 ? 'a tarefa' : marcadas.length + ' tarefas');
   }
 
   function desenharPessoas() {
@@ -182,8 +231,8 @@
       return '<div class="adm-linha">' +
         '<div class="info"><div class="titulo">' + esc(p.nome) + '</div><div class="detalhe">' + aparelhos + desde + '</div></div>' +
         '<div class="adm-acoes">' +
-          (p.aparelhos ? '<button type="button" class="mini" data-liberar="' + esc(p.nome) + '">Desligar aparelhos</button>' : '') +
-          '<button type="button" class="mini perigo" data-excluir-pessoa="' + esc(p.nome) + '">Excluir</button>' +
+          (p.aparelhos ? '<button type="button" class="mini tirar" data-liberar="' + esc(p.nome) + '">Desligar aparelhos</button>' : '') +
+          '<button type="button" class="mini perigo" data-excluir-pessoa="' + esc(p.nome) + '">' + ICONE.excluir + 'Excluir</button>' +
         '</div></div>';
     }).join('') : '<p class="vazio">Ninguém se escalou ainda.</p>';
   }
@@ -262,6 +311,68 @@
         acao(b, 'adm_excluir_tarefa', { id: t.id }, 'Tarefa excluída.');
       }
     }
+  });
+
+  // ---------- Seleção e ações em massa ----------
+
+  el('lista-adm').addEventListener('change', (ev) => {
+    const c = ev.target;
+    if (c.dataset.sel) {
+      if (c.checked) selecionadas.add(c.dataset.sel); else selecionadas.delete(c.dataset.sel);
+    } else if (c.dataset.marcarSemana) {
+      c.closest('.adm-semana').querySelectorAll('[data-sel]').forEach((x) => {
+        if (c.checked) selecionadas.add(x.dataset.sel); else selecionadas.delete(x.dataset.sel);
+      });
+    } else {
+      return;
+    }
+    atualizarSelecao();
+  });
+
+  el('massa-limpar').addEventListener('click', () => { selecionadas.clear(); atualizarSelecao(); });
+
+  // Tenta a ação em massa; se o script da planilha ainda for da versão anterior
+  // (não conhece a ação), faz uma por uma.
+  async function emMassa(botao, acaoMassa, acaoUma, ids, mensagemOk) {
+    if (ocupado || !ids.length) return;
+    ocupado = true;
+    botao.disabled = true;
+    botao.textContent = 'Aguarde…';
+    try {
+      try {
+        await pedir(acaoMassa, { ids: ids });
+      } catch (e) {
+        if (e.codigo !== 'acao_invalida') throw e;
+        for (const id of ids) await pedir(acaoUma, { id: id });
+      }
+      selecionadas.clear();
+      desenhar();
+      avisar(mensagemOk);
+    } catch (e) {
+      avisar(e.mensagem);
+    } finally {
+      ocupado = false;
+      botao.disabled = false;
+      atualizarSelecao();
+    }
+  }
+
+  el('massa-tirar').addEventListener('click', (ev) => {
+    const ids = dados.tarefas.filter((t) => selecionadas.has(t.id) && t.nome).map((t) => t.id);
+    if (!ids.length) return;
+    if (!confirm('Tirar as pessoas de ' + (ids.length === 1 ? '1 tarefa' : ids.length + ' tarefas') + '? As tarefas continuam, com a vaga livre.')) return;
+    emMassa(ev.currentTarget, 'adm_tirar_pessoas', 'adm_tirar_pessoa', ids, ids.length === 1 ? 'Vaga liberada.' : ids.length + ' vagas liberadas.');
+  });
+
+  el('massa-excluir').addEventListener('click', (ev) => {
+    const marcadas = dados.tarefas.filter((t) => selecionadas.has(t.id));
+    if (!marcadas.length) return;
+    const comPessoa = marcadas.filter((t) => t.nome).length;
+    const texto = 'Excluir ' + (marcadas.length === 1 ? '1 tarefa' : marcadas.length + ' tarefas') + '?' +
+      (comPessoa ? ' ' + (comPessoa === 1 ? '1 delas tem' : comPessoa + ' delas têm') + ' alguém escalado.' : '') + ' Não dá para desfazer.';
+    if (!confirm(texto)) return;
+    emMassa(ev.currentTarget, 'adm_excluir_tarefas', 'adm_excluir_tarefa', marcadas.map((t) => t.id),
+      marcadas.length === 1 ? 'Tarefa excluída.' : marcadas.length + ' tarefas excluídas.');
   });
 
   el('lista-pessoas').addEventListener('click', (ev) => {

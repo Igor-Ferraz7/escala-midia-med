@@ -50,6 +50,15 @@
           <button type="button" id="nova-tarefa" class="botao-primario">+ Nova tarefa</button>
         </div>
         <div id="lista-adm"></div>
+        <!-- Aparece quando há tarefas marcadas; fica presa no pé da tela. -->
+        <div id="barra-massa" class="barra-massa" hidden>
+          <span id="qtd-sel"></span>
+          <div class="barra-massa-acoes">
+            <button type="button" id="massa-tirar" class="mini tirar"></button>
+            <button type="button" id="massa-excluir" class="mini perigo"></button>
+            <button type="button" id="massa-limpar" class="link">Desmarcar</button>
+          </div>
+        </div>
       </div>
 
       <div id="aba-pessoas" hidden>

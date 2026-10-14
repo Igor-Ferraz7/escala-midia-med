@@ -126,6 +126,8 @@ const ACOES_ADMIN = {
   adm_salvar_tarefa: admSalvarTarefa,
   adm_excluir_tarefa: admExcluirTarefa,
   adm_tirar_pessoa: admTirarPessoa,
+  adm_tirar_pessoas: admTirarPessoas,
+  adm_excluir_tarefas: admExcluirTarefas,
   adm_limpar_inscricoes: admLimparInscricoes,
   adm_apagar_tarefas: admApagarTarefas,
   adm_liberar_pessoa: admLiberarPessoa,
@@ -564,6 +566,35 @@ function admTirarPessoa(pedido) {
   const d = acharLinha(pedido.id);
   if (d.indice < 0) return { erro: 'tarefa_nao_existe' };
   limparInscricao(d.aba, d.col, d.numero);
+  return {};
+}
+
+// Ações em massa: a tela manda a lista de ids marcados.
+function idsDoPedido(pedido) {
+  const ids = pedido.ids;
+  if (!Array.isArray(ids) || !ids.length || ids.length > 500) return null;
+  if (!ids.every(function (i) { return typeof i === 'string' && i.length <= 20; })) return null;
+  return ids;
+}
+
+function admTirarPessoas(pedido) {
+  const ids = idsDoPedido(pedido);
+  if (!ids) return { erro: 'selecao_invalida' };
+  const d = lerAba();
+  d.linhas.forEach(function (l, i) {
+    if (ids.indexOf(texto(l[d.col.id])) >= 0 && texto(l[d.col.nome])) limparInscricao(d.aba, d.col, i + 2);
+  });
+  return {};
+}
+
+// Apaga de baixo para cima, para os números das linhas não mudarem no meio do caminho.
+function admExcluirTarefas(pedido) {
+  const ids = idsDoPedido(pedido);
+  if (!ids) return { erro: 'selecao_invalida' };
+  const d = lerAba();
+  const linhas = [];
+  d.linhas.forEach(function (l, i) { if (ids.indexOf(texto(l[d.col.id])) >= 0) linhas.push(i + 2); });
+  linhas.sort(function (a, b) { return b - a; }).forEach(function (n) { d.aba.deleteRow(n); });
   return {};
 }
 
