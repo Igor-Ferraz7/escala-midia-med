@@ -372,6 +372,32 @@
     return '<button type="button" class="quero" data-acao="escalar" data-id="' + esc(t.id) + '">Quero</button>';
   }
 
+  // ---------- Culto dividido em funções (grupos) ----------
+  // As funções de um culto chegam como tarefas separadas, com o mesmo "grupo".
+  // Aqui elas viram um item recolhido: "Culto · 1 de 3 vagas", que abre ao tocar.
+
+  const TITULO_GRUPO = { culto: 'Culto' };
+  const abertos = new Set(); // grupos que a pessoa abriu
+
+  const desenho = (d) => '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + d + '</svg>';
+  const ICONES_FUNCAO = {
+    video: desenho('<path d="M15 10l4.55-2.28A1 1 0 0 1 21 8.62v6.76a1 1 0 0 1-1.45.9L15 14"/><rect x="3" y="6" width="12" height="12" rx="2"/>'),
+    arte: desenho('<path d="M12 21a9 9 0 0 1 0-18c4.97 0 9 3.58 9 8a4 4 0 0 1-4 4h-2a2 2 0 0 0-1 3.75A1.3 1.3 0 0 1 12 21"/><circle cx="7.5" cy="10.5" r="1"/><circle cx="12" cy="7.5" r="1"/><circle cx="16.5" cy="10.5" r="1"/>'),
+    fotos: desenho('<path d="M5 7h1a2 2 0 0 0 2-2a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1a2 2 0 0 0 2 2h1a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V9a2 2 0 0 1 2-2"/><circle cx="12" cy="13" r="3"/>')
+  };
+  const SETA = desenho('<path d="M6 9l6 6 6-6"/>');
+
+  function iconeDaFuncao(nome) {
+    if (/v[ií]deo/i.test(nome)) return ICONES_FUNCAO.video;
+    if (/arte/i.test(nome)) return ICONES_FUNCAO.arte;
+    if (/grava|foto/i.test(nome)) return ICONES_FUNCAO.fotos;
+    return '';
+  }
+
+  function nomeCompleto(t) {
+    return t.grupo ? (TITULO_GRUPO[t.tipo] || 'Culto') + ' · ' + t.tarefa : t.tarefa;
+  }
+
   function linhaDaTarefa(t, agora) {
     const d = paraData(t.data);
     const passou = d < agora;
@@ -383,6 +409,63 @@
       '<div class="info"><div class="titulo"><span class="ponto" style="background:' + cor + '"></span>' + esc(t.tarefa) + '</div>' +
       (detalhe ? '<div class="detalhe">' + esc(detalhe) + '</div>' : '') + '</div>' +
       '<div class="acao">' + botaoDaTarefa(t, passou) + '</div></div>';
+  }
+
+  // Uma função dentro do culto aberto: ícone, nome, prazo próprio e o botão.
+  function linhaDaFuncao(t, passou, detalheComum) {
+    const detalhe = [t.detalhe !== detalheComum ? t.detalhe : '', t.hora ? 'até ' + t.hora : ''].filter(Boolean).join(' · ');
+    return '<div class="funcao">' +
+      '<span class="funcao-icone">' + iconeDaFuncao(t.tarefa) + '</span>' +
+      '<div class="info"><div class="funcao-nome">' + esc(t.tarefa) + '</div>' +
+      (detalhe ? '<div class="detalhe">' + esc(detalhe) + '</div>' : '') + '</div>' +
+      '<div class="acao">' + botaoDaTarefa(t, passou) + '</div></div>';
+  }
+
+  function blocoDoGrupo(g, visiveis, agora) {
+    const d = paraData(g.data);
+    const passou = d < agora;
+    const ehHoje = d.getTime() === agora.getTime();
+    const cor = CORES[g.funcoes[0].tipo] || CORES.culto;
+    const preenchidas = g.funcoes.filter((t) => t.nome).length;
+    const minhas = g.funcoes.filter((t) => t.seu);
+    const comum = g.funcoes.every((t) => t.detalhe === g.funcoes[0].detalhe) ? g.funcoes[0].detalhe : '';
+    // Com filtro ligado, o culto já vem aberto e mostra só as funções que entram no filtro.
+    const aberto = filtro !== 'todos' || abertos.has(g.chave);
+    const lista = filtro !== 'todos' ? visiveis : g.funcoes;
+    const vagas = g.funcoes.length - preenchidas;
+    return '<div class="grupo' + (passou ? ' passado' : '') + (ehHoje ? ' hoje' : '') + (aberto ? ' aberto' : '') + '">' +
+      '<button type="button" class="grupo-topo" data-grupo="' + esc(g.chave) + '" aria-expanded="' + aberto + '">' +
+        '<div class="data"><b>' + d.getDate() + '</b><small>' + (ehHoje ? 'hoje' : DIAS[d.getDay()]) + '</small></div>' +
+        '<div class="info">' +
+          '<div class="titulo"><span class="ponto" style="background:' + cor + '"></span>' + esc(TITULO_GRUPO[g.funcoes[0].tipo] || 'Culto') +
+            '<span class="grupo-contagem">' + (vagas ? (vagas === 1 ? '1 vaga livre' : vagas + ' vagas livres') : 'completo') + '</span></div>' +
+          (comum ? '<div class="detalhe">' + esc(comum) + '</div>' : '') +
+          '<div class="grupo-barra" aria-label="' + preenchidas + ' de ' + g.funcoes.length + ' funções preenchidas">' +
+            g.funcoes.map((t) => '<span class="' + (t.seu ? 'sua' : t.nome ? 'ocupada' : '') + '"></span>').join('') +
+          '</div>' +
+          (minhas.length ? '<div class="grupo-voce">Você: ' + minhas.map((t) => esc(t.tarefa)).join(', ') + '</div>' : '') +
+        '</div>' +
+        '<span class="grupo-seta">' + SETA + '</span>' +
+      '</button>' +
+      (aberto ? '<div class="grupo-funcoes">' + lista.map((t) => linhaDaFuncao(t, passou, comum)).join('') + '</div>' : '') +
+    '</div>';
+  }
+
+  // Junta as funções de cada culto (mesmo grupo e mesma data) num item só, na posição da primeira.
+  function itensDaSemana(tarefasDaSemana, visivel, agora) {
+    const itens = [];
+    const grupos = {};
+    tarefasDaSemana.forEach((t) => {
+      if (!t.grupo) { itens.push({ tarefa: t }); return; }
+      const chave = t.grupo + '|' + t.data;
+      if (!grupos[chave]) { grupos[chave] = { chave: chave, data: t.data, funcoes: [] }; itens.push({ grupo: grupos[chave] }); }
+      grupos[chave].funcoes.push(t);
+    });
+    return itens.map((item) => {
+      if (item.tarefa) return visivel(item.tarefa) ? linhaDaTarefa(item.tarefa, agora) : '';
+      const visiveis = item.grupo.funcoes.filter(visivel);
+      return visiveis.length ? blocoDoGrupo(item.grupo, visiveis, agora) : '';
+    }).join('');
   }
 
   function render() {
@@ -430,7 +513,7 @@
       html += '<section class="semana" id="semana-' + s.numero + '">' +
         '<div class="semana-titulo">Semana ' + s.numero + ' · ' + s.inicio.getDate() + ' a ' + fim.getDate() + ' ' + MESES[fim.getMonth()].slice(0, 3) +
         marcas.map((m) => '<span class="marca">' + esc(m) + '</span>').join('') + '</div>' +
-        mostrar.map((t) => linhaDaTarefa(t, agora)).join('') + '</section>';
+        itensDaSemana(s.tarefas, visivel, agora) + '</section>';
     });
 
     if (!html) {
@@ -462,7 +545,7 @@
 
   function descrever(t) {
     const d = paraData(t.data);
-    return t.tarefa + ' (' + DIAS[d.getDay()] + ', ' + d.getDate() + ')';
+    return nomeCompleto(t) + ' (' + DIAS[d.getDay()] + ', ' + d.getDate() + ')';
   }
 
   // ---------- Ações ----------
@@ -489,6 +572,14 @@
   }
 
   lista.addEventListener('click', async (ev) => {
+    const topo = ev.target.closest('[data-grupo]');
+    if (topo) {
+      if (filtro !== 'todos') return; // com filtro, os cultos ficam sempre abertos
+      const chave = topo.dataset.grupo;
+      if (abertos.has(chave)) abertos.delete(chave); else abertos.add(chave);
+      render();
+      return;
+    }
     const botao = ev.target.closest('button[data-acao]');
     if (!botao || ocupado) return;
     const tarefa = tarefas.find((t) => String(t.id) === botao.dataset.id);

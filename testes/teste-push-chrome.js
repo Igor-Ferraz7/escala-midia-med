@@ -60,7 +60,8 @@ async function conectar(url) {
       const ok = document.getElementById('lembretes-ok').textContent, erro = document.getElementById('lembretes-erro').textContent;
       if (ok || erro) return { ok, erro };
     }
-    return 'sem resposta';
+    // Ajuda a entender o que travou.
+    return { semResposta: true, status: document.getElementById('lembretes-status').textContent, botaoDesativado: document.getElementById('lembretes-salvar').disabled };
   })()`));
 
   console.log('teste:', await avaliar(`(async () => {

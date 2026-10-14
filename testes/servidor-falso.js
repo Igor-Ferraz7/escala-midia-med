@@ -44,6 +44,17 @@ http.createServer((req, res) => {
     amb.ctx.enviarLembretes();
     return json({ envios: amb.envios.length });
   }
+  // Volta ao estado "lembretes não ligados"; com ?recusar=1, o "Google" passa a recusar o gatilho.
+  if (url.pathname === '/_desligar_lembretes') {
+    ['VAPID_PRIVADA', 'VAPID_PUBLICA', 'LEMBRETES_ULTIMA'].forEach((k) => delete amb.props[k]);
+    amb.gatilhos.length = 0;
+    const criar = amb.ctx.ScriptApp.newTrigger;
+    amb.ctx.ScriptApp.newTrigger = url.searchParams.get('recusar')
+      ? () => { throw new Error('Você não tem permissão para chamar ScriptApp.newTrigger.'); }
+      : (amb.criarGatilhoOriginal || criar);
+    amb.criarGatilhoOriginal = amb.criarGatilhoOriginal || criar;
+    return json({ ok: true });
+  }
   if (url.pathname === '/config.js') {
     res.writeHead(200, { 'Content-Type': 'text/javascript', 'Cache-Control': 'no-store' });
     return res.end("window.ESCALA_CONFIG = { urlPlanilha: '/api' };");

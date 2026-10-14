@@ -19,7 +19,7 @@ secao('Escala e nomes');
   const post = (o) => JSON.parse(ctx.doPost({ postData: { contents: JSON.stringify(o) } }));
   const get = (p) => JSON.parse(ctx.doGet({ parameter: p }));
 
-  ok(abas.Escala.dados[0].join() === 'id,data,tipo,tarefa,detalhe,marca,nome,token,quando,hora', 'configurar cria a coluna hora');
+  ok(abas.Escala.dados[0].join() === 'id,data,tipo,tarefa,detalhe,marca,nome,token,quando,hora,grupo', 'configurar cria as colunas hora e grupo');
   abas.Escala.dados[1][6] = 'Ana Souza'; abas.Escala.dados[1][7] = B;
   let r = get({ token: A });
   ok(abas.Pessoas && abas.Pessoas.dados.length === 2, 'aba Pessoas criada com quem já estava escalado');
@@ -133,6 +133,79 @@ secao('Administração');
   for (let i = 0; i < 8; i++) post({ acao: 'adm_entrar', senha: 'chute' + i });
   r = post({ acao: 'adm_entrar', senha: SENHA_TESTE });
   ok(r.erro === 'bloqueado', 'depois de 8 erros, bloqueia até a senha certa por 15 minutos');
+}
+
+// ======================================================================
+secao('Culto dividido em três funções');
+{
+  const { ctx, abas, props, gatilhos } = criarAmbiente(CAMINHO, { silencioso: true });
+  const post = (o) => JSON.parse(ctx.doPost({ postData: { contents: JSON.stringify(Object.assign({ token: A }, o)) } }));
+  props.SENHA_ADMIN = SENHA_TESTE;
+  const s = post({ acao: 'adm_entrar', senha: SENHA_TESTE }).sessao;
+
+  // Planilha de antes: aba Escala sem a coluna grupo.
+  abas.Escala.dados.forEach((l) => { l.length = 10; });
+  let r = post({ acao: 'adm_dados', sessao: s });
+  ok(abas.Escala.dados[0][10] === 'grupo', 'aba antiga ganha a coluna grupo sozinha');
+  ok(r.adm.cultosSemDividir.total === 7 && r.adm.cultosSemDividir.comPessoa === 0, 'conta os 7 cultos de outubro ainda sem dividir');
+
+  post({ acao: 'escalar', id: '20', nome: 'Ana', token: B });
+  r = post({ acao: 'adm_dados', sessao: s });
+  ok(r.adm.cultosSemDividir.comPessoa === 1, 'avisa quantos cultos sem dividir têm alguém');
+
+  r = post({ acao: 'adm_dividir_cultos', sessao: s });
+  const cultos = r.adm.tarefas.filter((t) => t.tipo === 'culto');
+  ok(r.ok && r.divididos === 7 && cultos.length === 21 && r.adm.tarefas.length === 30 - 7 + 21, 'divide: 7 cultos viram 21 funções');
+  ok(cultos.every((t) => t.grupo) && new Set(cultos.map((t) => t.grupo)).size === 7, 'cada culto tem um grupo, com 3 funções');
+  const dia20 = cultos.filter((t) => t.data === '2026-10-20');
+  ok(dia20.map((t) => t.tarefa).join('|') === 'Vídeo de divulgação|Arte de divulgação|Gravações e fotos do MED' &&
+    dia20.every((t) => t.detalhe === 'Postagem no insta e whats' && !t.nome), 'funções certas, detalhe mantido e quem estava fica livre');
+  ok(r.adm.cultosSemDividir.total === 0, 'depois de dividir, nenhum culto fica sem dividir');
+  r = post({ acao: 'adm_dividir_cultos', sessao: s });
+  ok(r.ok && r.adm.tarefas.length === 44, 'dividir de novo não faz nada');
+
+  // Culto novo já nasce com as três funções e prazos próprios.
+  r = post({ acao: 'adm_criar_culto', sessao: s, culto: { data: '2026-11-05', detalhe: 'Culto de jovens', marca: 'Novembro', horas: { video: '12:00', arte: '09:00', fotos: '' } } });
+  const novo = r.adm.tarefas.filter((t) => t.data === '2026-11-05');
+  ok(r.ok && novo.length === 3 && new Set(novo.map((t) => t.grupo)).size === 1 && novo.map((t) => t.hora).join('|') === '12:00|09:00|',
+    'culto novo: três funções no mesmo grupo, cada uma com seu prazo');
+  r = post({ acao: 'adm_criar_culto', sessao: s, culto: { data: '2026-11-31', horas: {} } });
+  ok(r.erro === 'tarefa_invalida', 'culto com data impossível é recusado');
+  r = post({ acao: 'adm_criar_culto', sessao: s, culto: { data: '2026-11-06', horas: { arte: '9h' } } });
+  ok(r.erro === 'tarefa_invalida', 'culto com prazo inválido é recusado');
+
+  // Mudar a data de uma função muda a das três; o tipo continua culto.
+  const video = novo[0];
+  r = post({ acao: 'adm_salvar_tarefa', sessao: s, tarefa: Object.assign({}, video, { data: '2026-11-07', tipo: 'musica', hora: '13:00' }) });
+  const depois = r.adm.tarefas.filter((t) => t.grupo === video.grupo);
+  ok(depois.every((t) => t.data === '2026-11-07' && t.tipo === 'culto') && depois[0].hora === '13:00' && depois[1].hora === '09:00',
+    'editar uma função: a data vale para as três, o prazo é só dela, o tipo continua culto');
+
+  // Cada função tem a própria vaga.
+  r = post({ acao: 'escalar', id: depois[0].id, nome: 'Bia', token: C });
+  const r2 = post({ acao: 'escalar', id: depois[1].id, nome: 'Caio', token: D });
+  ok(r.ok && r2.ok && r2.tarefas.find((t) => t.id === depois[0].id).nome === 'Bia' && r2.tarefas.find((t) => t.id === depois[1].id).nome === 'Caio' &&
+    r2.tarefas.find((t) => t.id === depois[0].id).grupo === video.grupo, 'cada função tem a própria vaga, e a página recebe o grupo');
+
+  // Avisos com o nome completo.
+  const m = ctx.calcularMensagens([{ id: '9', data: '2026-11-07', hora: '13:00', tipo: 'culto', tarefa: 'Vídeo de divulgação', grupo: 'culto-50', detalhe: '' }],
+    [{ tipo: 'dias', dias: 1, hora: '20:00' }],
+    ctx.Utilities.parseDate('2026-11-06 19:58', 'America/Sao_Paulo', 'yyyy-MM-dd HH:mm').getTime(),
+    ctx.Utilities.parseDate('2026-11-06 20:02', 'America/Sao_Paulo', 'yyyy-MM-dd HH:mm').getTime(), 'America/Sao_Paulo');
+  ok(m.length === 1 && m[0].titulo === 'Amanhã: Culto · Vídeo de divulgação', 'aviso diz "Culto · Vídeo de divulgação"');
+
+  // Ligar lembretes pela área do responsável.
+  r = post({ acao: 'adm_ligar_lembretes', sessao: s });
+  ok(r.ok && r.vapid && r.adm.lembretes.configurado && r.adm.lembretes.gatilho && gatilhos.length === 1, 'botão "Ligar lembretes" cria chave e gatilho');
+  r = post({ acao: 'adm_ligar_lembretes' });
+  ok(r.erro === 'sessao_expirada', '"Ligar lembretes" sem sessão é recusado');
+  const amb2 = criarAmbiente(CAMINHO, { silencioso: true });
+  amb2.props.SENHA_ADMIN = SENHA_TESTE;
+  amb2.ctx.ScriptApp.newTrigger = () => { throw new Error('Você não tem permissão para chamar ScriptApp.newTrigger'); };
+  const post2 = (o) => JSON.parse(amb2.ctx.doPost({ postData: { contents: JSON.stringify(Object.assign({ token: A }, o)) } }));
+  const s2 = post2({ acao: 'adm_entrar', senha: SENHA_TESTE }).sessao;
+  r = post2({ acao: 'adm_ligar_lembretes', sessao: s2 });
+  ok(r.erro === 'lembretes_falhou' && r.detalhe.includes('permissão'), 'se o Google recusar, devolve o motivo para a tela mostrar');
 }
 
 // ======================================================================
