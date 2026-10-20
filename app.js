@@ -380,7 +380,18 @@
   // Aqui elas viram um item recolhido: "Culto · 1 de 3 vagas", que abre ao tocar.
 
   const TITULO_GRUPO = { culto: 'Culto' };
+  // Os cultos da semana atual que ainda não passaram já vêm abertos. O que a pessoa abre ou fecha
+  // fica valendo até recarregar a página (a atualização de 1 minuto não desfaz).
   const abertos = new Set(); // grupos que a pessoa abriu
+  const fechados = new Set(); // grupos abertos por padrão que a pessoa fechou
+
+  function abertoPorPadrao(data, agora) {
+    const d = paraData(data);
+    return d >= agora && inicioDaSemana(d).getTime() === inicioDaSemana(agora).getTime();
+  }
+  function grupoAberto(chave, data, agora) {
+    return abertos.has(chave) || (abertoPorPadrao(data, agora) && !fechados.has(chave));
+  }
 
   const desenho = (d) => '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + d + '</svg>';
   const ICONES_FUNCAO = {
@@ -433,7 +444,7 @@
     const minhas = g.funcoes.filter((t) => t.seu);
     const comum = g.funcoes.every((t) => t.detalhe === g.funcoes[0].detalhe) ? g.funcoes[0].detalhe : '';
     // Com filtro ligado, o culto já vem aberto e mostra só as funções que entram no filtro.
-    const aberto = filtro !== 'todos' || abertos.has(g.chave);
+    const aberto = filtro !== 'todos' || grupoAberto(g.chave, g.data, agora);
     const lista = filtro !== 'todos' ? visiveis : g.funcoes;
     const vagas = g.funcoes.length - preenchidas;
     // Culto que já passou não tem mais vaga para pegar: só diz se ficou completo.
@@ -581,7 +592,9 @@
     if (topo) {
       if (filtro !== 'todos') return; // com filtro, os cultos ficam sempre abertos
       const chave = topo.dataset.grupo;
-      if (abertos.has(chave)) abertos.delete(chave); else abertos.add(chave);
+      const data = chave.slice(chave.lastIndexOf('|') + 1);
+      if (grupoAberto(chave, data, hoje())) { abertos.delete(chave); fechados.add(chave); }
+      else { fechados.delete(chave); abertos.add(chave); }
       render();
       return;
     }

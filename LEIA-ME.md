@@ -83,7 +83,7 @@ Cada culto tem três funções, e cada uma é uma vaga separada, com o próprio 
 - **Arte de divulgação**
 - **Gravações e fotos do MED**
 
-Na escala, o culto aparece recolhido numa linha só: "Culto · 2 vagas livres", com uma barrinha de três partes (cinza = livre, azul = alguém pegou, verde = você). Tocando, ele abre e mostra as três funções, cada uma com o botão "Quero". Com os filtros "Vagas livres" ou "Minhas", o culto já aparece aberto, só com as funções que entram no filtro.
+Na escala, o culto aparece recolhido numa linha só: "Culto · 2 vagas livres", com uma barrinha de três partes (cinza = livre, azul = alguém pegou, verde = você). Tocando, ele abre e mostra as três funções, cada uma com o botão "Quero". Os cultos da semana atual que ainda não passaram já aparecem abertos; se a pessoa fechar um, ele fica fechado até ela recarregar a página. Com os filtros "Vagas livres" ou "Minhas", o culto já aparece aberto, só com as funções que entram no filtro.
 
 Na área do responsável:
 
