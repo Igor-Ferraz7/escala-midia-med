@@ -167,7 +167,7 @@ Toda alteração em `apps-script/` que chega na `main` é enviada sozinha para o
    - Autorize com a conta dona da planilha. No fim, o navegador vai para um endereço `http://localhost:8888/?code=...` que não abre. Copie esse endereço inteiro e cole no terminal.
    - Rode `cat ~/.clasprc.json` e copie tudo o que aparecer. Depois apague: `rm ~/.clasprc.json`.
 3. **Guarde no GitHub:** no repositório, **Settings → Secrets and variables → Actions → New repository secret**. Nome `CLASPRC_JSON`, valor o que você copiou.
-4. **ID do script:** no Apps Script, **Configurações do projeto → ID do script**. Ele vai no `.clasp.json`, no lugar de `COLE_AQUI_O_ID_DO_SCRIPT`.
+4. **ID do script:** já está no `.clasp.json`. Só muda se o script for trocado (por exemplo, numa planilha nova): pegue o novo em **Configurações do projeto → ID do script** no Apps Script.
 
 Esse login dá acesso aos seus projetos do Apps Script e a arquivos do Drive criados por ele. Por isso fica só como segredo do GitHub, que ninguém lê depois de salvo. Para cortar o acesso: https://myaccount.google.com/permissions → clasp → Remover acesso.
 
