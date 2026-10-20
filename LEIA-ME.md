@@ -157,6 +157,26 @@ O mês que aparece no topo da página é calculado pela primeira data da lista, 
 
 ## Se mudar o código do script
 
+### Automático (pelo GitHub)
+
+Toda alteração em `apps-script/` que chega na `main` é enviada sozinha para o Apps Script e publicada como nova versão na mesma implantação (`.github/workflows/apps-script.yml`). O endereço `/exec` não muda. Para isso funcionar, uma vez só:
+
+1. **Ligue a API:** abra https://script.google.com/home/usersettings e ative a **API do Google Apps Script**.
+2. **Gere o login do clasp** no Google Cloud Shell (https://shell.cloud.google.com, já vem com Node):
+   - Rode `npx @google/clasp@3.4.1 login --no-localhost` e abra o link que aparecer.
+   - Autorize com a conta dona da planilha. No fim, o navegador vai para um endereço `http://localhost:8888/?code=...` que não abre. Copie esse endereço inteiro e cole no terminal.
+   - Rode `cat ~/.clasprc.json` e copie tudo o que aparecer. Depois apague: `rm ~/.clasprc.json`.
+3. **Guarde no GitHub:** no repositório, **Settings → Secrets and variables → Actions → New repository secret**. Nome `CLASPRC_JSON`, valor o que você copiou.
+4. **ID do script:** já está no `.clasp.json`. Só muda se o script for trocado (por exemplo, numa planilha nova): pegue o novo em **Configurações do projeto → ID do script** no Apps Script.
+
+Esse login dá acesso aos seus projetos do Apps Script e a arquivos do Drive criados por ele. Por isso fica só como segredo do GitHub, que ninguém lê depois de salvo. Para cortar o acesso: https://myaccount.google.com/permissions → clasp → Remover acesso.
+
+O fuso (Brasília) e o V8 ficam no `apps-script/appsscript.json`, e vão junto a cada envio.
+
+A senha (`SENHA_ADMIN`) e a autorização do `configurarLembretes` continuam manuais: o Google exige que o dono faça isso no editor.
+
+### Manual
+
 Depois de editar o `Codigo.gs`, cole o arquivo inteiro no editor do Apps Script, salve e vá em **Implantar → Gerenciar implantações → (lápis) → Versão: Nova versão → Implantar**. Assim o endereço continua o mesmo e o `config.js` não precisa mudar.
 
 Só salvar o código **não** atualiza o site: sem a "Nova versão", o endereço `/exec` continua rodando o código antigo.
