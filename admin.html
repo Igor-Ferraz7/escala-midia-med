@@ -50,6 +50,15 @@
           <button type="button" id="nova-tarefa" class="botao-primario">+ Nova tarefa</button>
         </div>
         <div id="lista-adm"></div>
+        <!-- Aparece quando há tarefas marcadas; fica presa no pé da tela. -->
+        <div id="barra-massa" class="barra-massa" hidden>
+          <span id="qtd-sel"></span>
+          <div class="barra-massa-acoes">
+            <button type="button" id="massa-tirar" class="mini tirar"></button>
+            <button type="button" id="massa-excluir" class="mini perigo"></button>
+            <button type="button" id="massa-limpar" class="link">Desmarcar</button>
+          </div>
+        </div>
       </div>
 
       <div id="aba-pessoas" hidden>
@@ -63,6 +72,11 @@
         <div class="cartao">
           <h2>Lembretes</h2>
           <div id="estado-lembretes"></div>
+        </div>
+        <div class="cartao" id="cartao-cultos" hidden>
+          <h2>Dividir cultos em 3 funções</h2>
+          <p id="texto-cultos"></p>
+          <button type="button" id="dividir-cultos" class="botao-primario">Dividir cultos</button>
         </div>
         <div class="cartao">
           <h2>Tirar todos das tarefas</h2>
@@ -102,6 +116,7 @@
             </select>
           </div>
           <div class="campo"><label for="t-tarefa">Nome da tarefa</label><input id="t-tarefa" type="text" maxlength="60" placeholder="Culto"></div>
+          <div id="bloco-funcoes" class="campo inteiro bloco-funcoes" hidden></div>
           <div class="campo inteiro"><label for="t-detalhe">Detalhe (opcional)</label><input id="t-detalhe" type="text" maxlength="160" placeholder="Postagem no insta e whats"></div>
           <div class="campo"><label for="t-marca">Etiqueta da semana (opcional)</label><input id="t-marca" type="text" maxlength="30" placeholder="Saco cheio"></div>
           <div class="campo"><label for="t-nome">Quem está escalado (opcional)</label><input id="t-nome" type="text" maxlength="40" list="nomes-adm" autocomplete="off"></div>

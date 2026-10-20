@@ -15,6 +15,8 @@
 }
 
 * { box-sizing: border-box; }
+/* Elemento escondido fica escondido, mesmo que uma regra própria diga display: flex. */
+[hidden] { display: none !important; }
 html { -webkit-text-size-adjust: 100%; }
 body {
   margin: 0;
@@ -180,6 +182,33 @@ input:focus { border-color: var(--destaque); outline: none; box-shadow: 0 0 0 3p
 
 .vazio { padding: 28px 0; text-align: center; color: var(--suave); font-size: 14px; }
 
+/* ---------- Culto recolhido (três funções) ---------- */
+.grupo { border-bottom: 1px solid var(--linha); }
+.grupo-topo {
+  display: flex; align-items: center; gap: 12px; width: 100%;
+  padding: 12px 0; border: 0; background: none; color: inherit; text-align: left;
+}
+.grupo.passado .grupo-topo, .grupo.passado .grupo-funcoes { opacity: 0.5; }
+.grupo.hoje .data b { color: var(--destaque); }
+.grupo-contagem { margin-left: 6px; font-size: 12px; font-weight: 400; color: var(--suave); }
+.grupo-barra { display: flex; gap: 4px; margin-top: 6px; }
+.grupo-barra span { width: 26px; height: 5px; border-radius: 3px; background: var(--linha); }
+.grupo-barra span.ocupada { background: var(--destaque); }
+.grupo-barra span.sua { background: #22a05a; }
+.grupo-voce { margin-top: 4px; font-size: 12px; color: var(--ok-texto); }
+.grupo-seta { display: grid; place-items: center; width: 32px; height: 32px; flex: none; border-radius: 8px; color: var(--suave); transition: transform 0.2s ease; }
+.grupo.aberto .grupo-seta { transform: rotate(180deg); }
+.grupo-funcoes { padding: 0 0 8px 50px; }
+.funcao { display: flex; align-items: center; gap: 10px; padding: 9px 0; }
+.funcao + .funcao { border-top: 1px dashed var(--linha); }
+.funcao-icone {
+  display: grid; place-items: center; width: 30px; height: 30px; flex: none;
+  border-radius: 8px; background: #eef3fe; color: var(--destaque);
+}
+.funcao-nome { font-size: 14px; }
+@media (hover: hover) { .grupo-topo:hover .grupo-seta { background: #f5f6f8; } }
+@media (max-width: 380px) { .grupo-funcoes { padding-left: 12px; } }
+
 .orientacoes { margin-top: 28px; padding: 0 14px; border: 1px solid var(--linha); border-radius: 12px; }
 .orientacoes summary { padding: 12px 0; font-weight: 500; cursor: pointer; }
 .orientacoes ul { margin: 0 0 14px; padding-left: 18px; font-size: 14px; color: #374151; }
@@ -278,7 +307,26 @@ select:focus { border-color: var(--destaque); outline: none; box-shadow: 0 0 0 3
 .adm-abas { display: flex; gap: 8px; margin: 20px 0 4px; overflow-x: auto; }
 .adm-barra { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; margin-top: 14px; }
 .adm-barra p { margin: 0; font-size: 13px; color: var(--suave); }
-.adm-linha { display: flex; align-items: flex-start; gap: 12px; padding: 12px 0; border-bottom: 1px solid var(--linha); }
+/* As linhas têm 8px de folga dos lados (compensados na margem) para o destaque de "marcada" não encostar no texto. */
+.adm-linha { display: flex; align-items: flex-start; gap: 12px; margin: 0 -8px; padding: 12px 8px; border-bottom: 1px solid var(--linha); }
+.adm-linha.selecionada { background: #f1f5ff; }
+/* Culto na área do responsável: uma cabeça (marca as três) e as funções logo abaixo, com o ícone no lugar da data. */
+.adm-grupo-topo { display: flex; align-items: flex-start; gap: 12px; margin: 0 -8px; padding: 12px 8px 6px; }
+.adm-funcao { border-bottom-style: dashed; }
+.adm-funcao .data { display: grid; place-items: center; }
+.adm-funcao .titulo { font-weight: 400; }
+.adm-funcao + .adm-linha:not(.adm-funcao), .adm-funcao + .adm-grupo-topo { border-top: 1px solid var(--linha); }
+.bloco-funcoes { padding: 12px; border: 1px solid var(--linha); border-radius: 12px; }
+.rotulo-funcoes { margin: 0 0 8px; font-size: 13px; color: var(--suave); }
+.form-grade .bloco-funcoes .funcao-prazo { display: flex; align-items: center; gap: 10px; margin: 0; padding: 6px 0; font-size: 14px; color: var(--texto); }
+.funcao-prazo span:nth-child(2) { flex: 1; min-width: 0; }
+.funcao-prazo input { width: 130px; flex: none; }
+/* Celular: os botões descem para baixo do texto, alinhados com o nome da tarefa (caixa 28 + data 38 + espaços). */
+@media (max-width: 599px) {
+  .adm-linha { flex-wrap: wrap; }
+  .adm-linha .adm-acoes { flex: 1 1 100%; max-width: none; justify-content: flex-start; padding-left: 90px; }
+  #lista-pessoas .adm-linha .adm-acoes { padding-left: 0; }
+}
 .adm-linha .info { padding-top: 2px; }
 .adm-linha .quem-adm { margin-top: 4px; font-size: 13px; color: var(--ok-texto); }
 .adm-linha .quem-adm.vazio-adm { color: var(--suave); }
@@ -288,7 +336,33 @@ select:focus { border-color: var(--destaque); outline: none; box-shadow: 0 0 0 3
   border: 1px solid var(--borda-campo); background: var(--fundo);
   font-size: 13px; color: var(--texto);
 }
-.mini.perigo { border-color: #f3c1bd; color: var(--erro); }
+.mini { display: inline-flex; align-items: center; gap: 5px; }
+/* Cores pela consequência: azul muda, laranja libera a vaga, vermelho apaga. */
+.mini.editar { border-color: #bfd3fb; background: #f1f5ff; color: #1d4ed8; }
+.mini.tirar { border-color: #fcd9a8; background: #fff7ed; color: #b45309; }
+.mini.perigo { border-color: #f3c1bd; background: #fef3f2; color: var(--erro); }
+
+/* Caixas de marcar (o estilo geral de input deixaria com 44px de altura). */
+input[type="checkbox"] { width: 20px; height: 20px; margin: 0; padding: 0; flex: none; accent-color: var(--destaque); cursor: pointer; }
+.sel-tarefa { display: flex; align-items: center; justify-content: center; width: 28px; min-height: 40px; flex: none; cursor: pointer; }
+.marcar-semana { display: inline-flex; align-items: center; gap: 6px; margin-left: auto; font-size: 13px; color: var(--texto); cursor: pointer; }
+.marcar-semana input { width: 18px; height: 18px; }
+.adm-semana .semana-titulo { margin-top: 20px; }
+
+.barra-massa {
+  position: sticky; bottom: 0; z-index: 5;
+  display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px;
+  margin: 12px -16px 0; padding: 12px 16px calc(12px + env(safe-area-inset-bottom));
+  background: var(--fundo); border-top: 1px solid var(--linha);
+  box-shadow: 0 -6px 16px rgba(20, 22, 26, 0.06);
+  font-size: 14px; font-weight: 500;
+}
+.barra-massa[hidden] { display: none; }
+.barra-massa-acoes { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.barra-massa .mini { height: 36px; padding: 0 12px; font-size: 14px; }
+@media (min-width: 720px) {
+  .barra-massa { margin: 12px 0 0; border: 1px solid var(--linha); border-radius: 12px; bottom: 16px; }
+}
 .cartao { margin-top: 16px; padding: 16px; border: 1px solid var(--linha); border-radius: 16px; }
 .cartao h2 { margin: 0 0 6px; font-size: 17px; font-weight: 500; }
 .cartao p { margin: 0 0 12px; font-size: 14px; color: #374151; }
@@ -304,7 +378,9 @@ select:focus { border-color: var(--destaque); outline: none; box-shadow: 0 0 0 3
   .quero:hover { background: var(--destaque-escuro); }
   .voce:hover { background: #cfeedd; }
   .filtro:hover:not([aria-pressed="true"]), .icone:hover, .botao-secundario:hover, .mini:hover, .botao-adm:hover { background: #f5f6f8; }
-  .botao-perigo:hover, .mini.perigo:hover { background: #fdf0ef; }
+  .botao-perigo:hover, .mini.perigo:hover { background: #fde4e1; }
+  .mini.editar:hover { background: #e2ebfe; }
+  .mini.tirar:hover { background: #ffedd5; }
   .botao-primario:hover:not(:disabled) { background: var(--destaque-escuro); }
 }
 
@@ -330,7 +406,8 @@ select:focus { border-color: var(--destaque); outline: none; box-shadow: 0 0 0 3
     border: 1px solid var(--linha); border-radius: 16px;
   }
   .semana-titulo { margin: 14px 0 4px; }
-  .semana .linha:last-child { border-bottom: 0; }
+  .semana .linha:last-child, .semana .grupo:last-child { border-bottom: 0; }
+  .grupo-topo { padding: 14px 0; }
   .linha { padding: 14px 0; }
 }
 

@@ -13,8 +13,17 @@
 // ===================== 1. Configuração e calendário inicial =====================
 
 const NOME_ABA = 'Escala';
-const COLUNAS = ['id', 'data', 'tipo', 'tarefa', 'detalhe', 'marca', 'nome', 'token', 'quando', 'hora'];
+const COLUNAS = ['id', 'data', 'tipo', 'tarefa', 'detalhe', 'marca', 'nome', 'token', 'quando', 'hora', 'grupo'];
 const TIPOS = ['culto', 'resumo', 'musica', 'devocional', 'oracao', 'momento', 'aviso'];
+
+// Um culto tem três funções, cada uma com a própria vaga e o próprio prazo.
+// As três linhas da planilha ficam ligadas pela coluna "grupo" (o mesmo texto nas três).
+const FUNCOES_CULTO = [
+  { chave: 'video', nome: 'Vídeo de divulgação' },
+  { chave: 'arte', nome: 'Arte de divulgação' },
+  { chave: 'fotos', nome: 'Gravações e fotos do MED' }
+];
+const TITULO_GRUPO = { culto: 'Culto' };
 
 // Cada nome fica ligado aos aparelhos que podem usá-lo (pelo código guardado em cada navegador).
 // A coluna "token" guarda um ou mais códigos separados por espaço. Um aparelho novo entra
@@ -90,7 +99,7 @@ function configurar() {
   // Datas, horas e códigos como texto, para a planilha não transformar em outra coisa.
   ['id', 'data', 'token', 'hora'].forEach(function (c) { formatarComoTexto(aba, COLUNAS.indexOf(c) + 1); });
 
-  const linhas = OUTUBRO.map(function (t) { return t.concat(['', '', '', '']); });
+  const linhas = OUTUBRO.map(function (t) { return t.concat(new Array(COLUNAS.length - t.length).fill('')); });
   aba.getRange(1, 1, 1, COLUNAS.length).setValues([COLUNAS]).setFontWeight('bold');
   aba.getRange(2, 1, linhas.length, COLUNAS.length).setValues(linhas);
   aba.setFrozenRows(1);
@@ -126,6 +135,11 @@ const ACOES_ADMIN = {
   adm_salvar_tarefa: admSalvarTarefa,
   adm_excluir_tarefa: admExcluirTarefa,
   adm_tirar_pessoa: admTirarPessoa,
+  adm_tirar_pessoas: admTirarPessoas,
+  adm_excluir_tarefas: admExcluirTarefas,
+  adm_criar_culto: admCriarCulto,
+  adm_dividir_cultos: admDividirCultos,
+  adm_ligar_lembretes: admLigarLembretes,
   adm_limpar_inscricoes: admLimparInscricoes,
   adm_apagar_tarefas: admApagarTarefas,
   adm_liberar_pessoa: admLiberarPessoa,
@@ -305,8 +319,14 @@ function tarefaDaLinha(d, l) {
     detalhe: texto(l[d.col.detalhe]),
     marca: texto(l[d.col.marca]),
     nome: texto(l[d.col.nome]),
-    token: texto(l[d.col.token])
+    token: texto(l[d.col.token]),
+    grupo: texto(l[d.col.grupo])
   };
+}
+
+// Nome para avisos: "Culto · Vídeo de divulgação" em vez de só "Vídeo de divulgação".
+function nomeCompleto(t) {
+  return t.grupo ? (TITULO_GRUPO[t.tipo] || 'Culto') + ' · ' + t.tarefa : t.tarefa;
 }
 
 function tarefasValidas(d) {
@@ -325,7 +345,7 @@ function listar(token, pessoas) {
   return tarefasValidas(lerAba()).map(function (t) {
     return {
       id: t.id, data: t.data, hora: t.hora, tipo: t.tipo, tarefa: t.tarefa,
-      detalhe: t.detalhe, marca: t.marca, nome: t.nome,
+      detalhe: t.detalhe, marca: t.marca, nome: t.nome, grupo: t.grupo,
       seu: ehMinha(t, pessoas, token)
     };
   });
@@ -466,10 +486,17 @@ function dadosAdmin() {
   const d = lerAba();
   const pessoas = lerPessoas();
   const lembretes = tabela(NOME_ABA_LEMBRETES, COLUNAS_LEMBRETES, criarAbaLembretes);
+  const tarefas = tarefasValidas(d);
+  const cultosSemDividir = tarefas.filter(function (t) { return t.tipo === 'culto' && !t.grupo; });
   return {
-    tarefas: tarefasValidas(d).map(function (t) {
-      return { id: t.id, data: t.data, hora: t.hora, tipo: t.tipo, tarefa: t.tarefa, detalhe: t.detalhe, marca: t.marca, nome: t.nome };
+    tarefas: tarefas.map(function (t) {
+      return { id: t.id, data: t.data, hora: t.hora, tipo: t.tipo, tarefa: t.tarefa, detalhe: t.detalhe, marca: t.marca, nome: t.nome, grupo: t.grupo };
     }),
+    cultosSemDividir: {
+      total: cultosSemDividir.length,
+      comPessoa: cultosSemDividir.filter(function (t) { return t.nome; }).length
+    },
+    funcoesCulto: FUNCOES_CULTO,
     pessoas: pessoas.linhas.map(function (p) {
       return {
         nome: p.nome,
@@ -527,6 +554,14 @@ function admSalvarTarefa(pedido) {
     if (i < 0) return { erro: 'tarefa_nao_existe' };
     numero = i + 2;
     nomeAntes = texto(d.linhas[i][d.col.nome]);
+    // Função de um culto: continua sendo do tipo culto, e mudar a data muda a das três funções.
+    const grupo = texto(d.linhas[i][d.col.grupo]);
+    if (grupo) {
+      t.tipo = texto(d.linhas[i][d.col.tipo]) || 'culto';
+      d.linhas.forEach(function (l, j) {
+        if (j !== i && texto(l[d.col.grupo]) === grupo) d.aba.getRange(j + 2, d.col.data + 1).setValue(t.data);
+      });
+    }
   } else {
     const maior = d.linhas.reduce(function (m, l) { return Math.max(m, Number(texto(l[d.col.id])) || 0); }, 0);
     const nova = new Array(d.largura).fill('');
@@ -553,6 +588,76 @@ function admSalvarTarefa(pedido) {
   return {};
 }
 
+function proximoId(d) {
+  return d.linhas.reduce(function (m, l) { return Math.max(m, Number(texto(l[d.col.id])) || 0); }, 0) + 1;
+}
+
+// Linhas das três funções de um culto, prontas para a planilha.
+function linhasDoCulto(d, primeiroId, base, horas) {
+  return FUNCOES_CULTO.map(function (f, i) {
+    const linha = new Array(d.largura).fill('');
+    linha[d.col.id] = String(primeiroId + i);
+    linha[d.col.data] = base.data;
+    linha[d.col.tipo] = 'culto';
+    linha[d.col.tarefa] = f.nome;
+    linha[d.col.detalhe] = seguro(base.detalhe || '');
+    linha[d.col.marca] = seguro(base.marca || '');
+    linha[d.col.hora] = (horas && horas[f.chave]) || '';
+    linha[d.col.grupo] = 'culto-' + primeiroId;
+    return linha;
+  });
+}
+
+// Culto novo pela área do responsável: já nasce com as três funções.
+function admCriarCulto(pedido) {
+  const c = pedido.culto || {};
+  const data = String(c.data || '').trim();
+  if (!dataValida(data)) return { erro: 'tarefa_invalida' };
+  const horas = {};
+  for (let i = 0; i < FUNCOES_CULTO.length; i++) {
+    const h = String((c.horas && c.horas[FUNCOES_CULTO[i].chave]) || '').trim();
+    if (h && !/^([01]\d|2[0-3]):[0-5]\d$/.test(h)) return { erro: 'tarefa_invalida' };
+    horas[FUNCOES_CULTO[i].chave] = h;
+  }
+  const d = lerAba();
+  const base = {
+    data: data,
+    detalhe: String(c.detalhe || '').replace(/\s+/g, ' ').trim().slice(0, 160),
+    marca: String(c.marca || '').replace(/\s+/g, ' ').trim().slice(0, 30)
+  };
+  const linhas = linhasDoCulto(d, proximoId(d), base, horas);
+  d.aba.getRange(d.aba.getLastRow() + 1, 1, linhas.length, d.largura).setValues(linhas);
+  return {};
+}
+
+// Troca cada culto antigo (uma linha só) pelas três funções. Quem estava no culto fica livre
+// para escolher de novo. Mantém data, detalhe, etiqueta e horário.
+function admDividirCultos() {
+  const d = lerAba();
+  const antigos = tarefasValidas(d).filter(function (t) { return t.tipo === 'culto' && !t.grupo; });
+  if (!antigos.length) return {};
+  let id = proximoId(d);
+  let novas = [];
+  antigos.forEach(function (t) {
+    novas = novas.concat(linhasDoCulto(d, id, t, { video: t.hora, arte: t.hora, fotos: t.hora }));
+    id += FUNCOES_CULTO.length;
+  });
+  d.aba.getRange(d.aba.getLastRow() + 1, 1, novas.length, d.largura).setValues(novas);
+  antigos.map(function (t) { return t.numero; }).sort(function (a, b) { return b - a; })
+    .forEach(function (n) { d.aba.deleteRow(n); });
+  return { divididos: antigos.length };
+}
+
+// Liga os lembretes pela área do responsável, sem precisar escolher a função no editor.
+function admLigarLembretes() {
+  try {
+    configurarLembretes();
+    return {};
+  } catch (e) {
+    return { erro: 'lembretes_falhou', detalhe: String((e && e.message) || e).slice(0, 300) };
+  }
+}
+
 function admExcluirTarefa(pedido) {
   const d = acharLinha(pedido.id);
   if (d.indice < 0) return { erro: 'tarefa_nao_existe' };
@@ -564,6 +669,35 @@ function admTirarPessoa(pedido) {
   const d = acharLinha(pedido.id);
   if (d.indice < 0) return { erro: 'tarefa_nao_existe' };
   limparInscricao(d.aba, d.col, d.numero);
+  return {};
+}
+
+// Ações em massa: a tela manda a lista de ids marcados.
+function idsDoPedido(pedido) {
+  const ids = pedido.ids;
+  if (!Array.isArray(ids) || !ids.length || ids.length > 500) return null;
+  if (!ids.every(function (i) { return typeof i === 'string' && i.length <= 20; })) return null;
+  return ids;
+}
+
+function admTirarPessoas(pedido) {
+  const ids = idsDoPedido(pedido);
+  if (!ids) return { erro: 'selecao_invalida' };
+  const d = lerAba();
+  d.linhas.forEach(function (l, i) {
+    if (ids.indexOf(texto(l[d.col.id])) >= 0 && texto(l[d.col.nome])) limparInscricao(d.aba, d.col, i + 2);
+  });
+  return {};
+}
+
+// Apaga de baixo para cima, para os números das linhas não mudarem no meio do caminho.
+function admExcluirTarefas(pedido) {
+  const ids = idsDoPedido(pedido);
+  if (!ids) return { erro: 'selecao_invalida' };
+  const d = lerAba();
+  const linhas = [];
+  d.linhas.forEach(function (l, i) { if (ids.indexOf(texto(l[d.col.id])) >= 0) linhas.push(i + 2); });
+  linhas.sort(function (a, b) { return b - a; }).forEach(function (n) { d.aba.deleteRow(n); });
   return {};
 }
 
@@ -836,7 +970,7 @@ function calcularMensagens(tarefas, regras, inicio, fim, tz) {
           .filter(function (o) { return o.prazo > m && o.prazo <= m + 7 * 86400000; })
           .sort(function (a, b) { return a.prazo - b.prazo; });
         if (!proximas.length) return;
-        const linhas = proximas.slice(0, 6).map(function (o) { return dataCurta(o.x.data, tz) + ' · ' + o.x.tarefa; });
+        const linhas = proximas.slice(0, 6).map(function (o) { return dataCurta(o.x.data, tz) + ' · ' + nomeCompleto(o.x); });
         if (proximas.length > 6) linhas.push('e mais ' + (proximas.length - 6));
         mensagens.push({ titulo: 'Suas tarefas nos próximos 7 dias', corpo: linhas.join('\n'), tag: 'escala-semana-' + dia });
       });
@@ -850,11 +984,11 @@ function calcularMensagens(tarefas, regras, inicio, fim, tz) {
       let titulo;
       if (r.tipo === 'dias') {
         quando = momento(somarDias(x.data, -r.dias, tz), r.hora, tz);
-        titulo = (r.dias === 0 ? 'Hoje' : r.dias === 1 ? 'Amanhã' : 'Em ' + r.dias + ' dias') + ': ' + x.tarefa;
+        titulo = (r.dias === 0 ? 'Hoje' : r.dias === 1 ? 'Amanhã' : 'Em ' + r.dias + ' dias') + ': ' + nomeCompleto(x);
       } else {
         quando = prazo - r.quantidade * (r.unidade === 'horas' ? 3600000 : 60000);
         titulo = (r.quantidade === 1 ? 'Falta ' : 'Faltam ') +
-          (r.unidade === 'horas' ? plural(r.quantidade, 'hora', 'horas') : plural(r.quantidade, 'minuto', 'minutos')) + ': ' + x.tarefa;
+          (r.unidade === 'horas' ? plural(r.quantidade, 'hora', 'horas') : plural(r.quantidade, 'minuto', 'minutos')) + ': ' + nomeCompleto(x);
       }
       if (!dentro(quando) || quando >= prazo) return;
       mensagens.push({

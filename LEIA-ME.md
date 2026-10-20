@@ -47,7 +47,7 @@ Para testar, cole o endereço no navegador. Deve aparecer um texto começando co
 
 Faça depois de colar a versão do `Codigo.gs` que tem administração e lembretes.
 
-1. **Confira o projeto.** No Apps Script, abra **Configurações do projeto** (engrenagem, à esquerda):
+1. **Confira o projeto.** Com a publicação automática (veja "Se mudar o código do script"), isto já vem do `apps-script/appsscript.json` e não precisa conferir. Sem ela, no Apps Script, abra **Configurações do projeto** (engrenagem, à esquerda):
    - "Ativar o ambiente de execução do Chrome V8" precisa estar **marcado**. Os lembretes usam contas que só existem nele.
    - O **fuso horário** precisa ser `(GMT-03:00) Horário de Brasília` (ou o da cidade). É por ele que o script sabe quando é "20:00".
 2. **Cadastre a senha.** Ainda em Configurações do projeto, desça até **Propriedades do script → Adicionar propriedade**:
@@ -56,8 +56,8 @@ Faça depois de colar a versão do `Codigo.gs` que tem administração e lembret
    - Clique em **Salvar propriedades do script**.
 
    A senha fica só aí. Ela **não** vai no código nem no GitHub, porque o código é público e qualquer pessoa poderia ler. Para trocar a senha, é só editar esse valor (vale na hora, sem implantar de novo).
-3. **Ligue os lembretes.** Volte ao editor, escolha a função **configurarLembretes** na barra de cima e clique em **Executar**. O Google vai pedir autorização de novo, porque agora o script envia notificações e roda sozinho a cada 5 minutos. Autorize do mesmo jeito da Parte 1.
-4. **Implante a versão nova:** **Implantar → Gerenciar implantações → (lápis) → Versão: Nova versão → Implantar**.
+3. **Ligue os lembretes.** O jeito mais fácil é pela área do responsável: aba **Geral → Ligar lembretes** (depois do passo 4). Se aparecer um erro de permissão, faça pelo editor uma vez: escolha a função **configurarLembretes** na lista de funções, no alto do editor (cuidado para não deixar a `configurar`, que vem escolhida), e clique em **Executar**. O Google vai pedir autorização, porque agora o script envia notificações e roda sozinho a cada 5 minutos. Autorize do mesmo jeito da Parte 1.
+4. **Implante a versão nova.** Com a publicação automática, o GitHub já faz isso a cada mudança no script. Sem ela: **Implantar → Gerenciar implantações → (lápis) → Versão: Nova versão → Implantar**.
 
 Para conferir: abra a área do responsável, entre com a senha e veja a aba **Geral**. Ela deve dizer "Lembretes ligados".
 
@@ -66,12 +66,32 @@ Para conferir: abra a área do responsável, entre com a senha e veja a aba **Ge
 No fim da página da escala tem o botão **Área do responsável**. Depois de entrar com a senha, dá para:
 
 - **Tarefas:** criar, editar e excluir tarefas; mudar data, horário, tipo, detalhe e etiqueta da semana; escalar alguém escrevendo o nome; tirar a pessoa de uma tarefa.
+  - **Várias de uma vez:** marque as caixinhas (ou "Marcar todos" na semana, ou a caixinha do culto) e use a barra que aparece no pé da tela para **tirar as pessoas** ou **excluir**.
+  - Cores dos botões: azul muda (Editar), laranja libera a vaga (Tirar pessoa), vermelho apaga (Excluir).
 - **Pessoas:** ver os nomes e quantos aparelhos cada um tem; **desligar os aparelhos** de um nome (o próximo aparelho que usar o nome fica com ele); excluir um nome.
-- **Geral:** ver se os lembretes estão ligados; **tirar todos das tarefas** (as vagas ficam livres); **apagar todas as tarefas** (para começar um mês do zero, pede para digitar APAGAR).
+- **Geral:** ver se os lembretes estão ligados e **ligar** se não estiverem; **dividir cultos** do formato antigo; **tirar todos das tarefas** (as vagas ficam livres); **apagar todas as tarefas** (para começar um mês do zero, pede para digitar APAGAR).
 
 A entrada vale por 6 horas, ou até fechar a aba. Depois de 8 senhas erradas seguidas, a entrada fica bloqueada por 15 minutos, para ninguém ficar chutando.
 
 Quando o responsável escala alguém pelo nome, o primeiro aparelho que usar aquele nome na página fica ligado a ele e enxerga a tarefa como sua.
+
+## Culto: três funções
+
+Cada culto tem três funções, e cada uma é uma vaga separada, com o próprio prazo:
+
+- **Vídeo de divulgação**
+- **Arte de divulgação**
+- **Gravações e fotos do MED**
+
+Na escala, o culto aparece recolhido numa linha só: "Culto · 2 vagas livres", com uma barrinha de três partes (cinza = livre, azul = alguém pegou, verde = você). Tocando, ele abre e mostra as três funções, cada uma com o botão "Quero". Com os filtros "Vagas livres" ou "Minhas", o culto já aparece aberto, só com as funções que entram no filtro.
+
+Na área do responsável:
+
+- **+ Nova tarefa** com o tipo **Culto** cria o culto já com as três funções; dá para escolher o prazo de cada uma.
+- **Editar** uma função muda só ela, menos a **data**, que vale para as três.
+- Cultos criados antes desta versão (uma vaga só) aparecem em **Geral → Dividir cultos**. Dividir troca cada um pelas três funções; quem estava escalado no culto fica livre para escolher de novo.
+
+Na planilha, as três funções são três linhas com o mesmo texto na coluna `grupo`.
 
 ## Lembretes
 
@@ -136,7 +156,7 @@ IP e MAC não servem para isso. O navegador nunca entrega o MAC para um site, e 
 
 ## Montar o próximo mês
 
-O jeito mais fácil é pela **área do responsável**: em Geral, "Apagar todas as tarefas", e depois "+ Nova tarefa" para cada dia.
+O jeito mais fácil é pela **área do responsável**: em Geral, "Apagar todas as tarefas", e depois "+ Nova tarefa" para cada dia (para culto, escolha o tipo Culto e as três funções são criadas juntas).
 
 Também dá para fazer direto na planilha. Na aba **Escala**, apague as linhas do mês anterior (deixe a primeira linha, com os títulos) e preencha as novas tarefas:
 
@@ -149,6 +169,7 @@ Também dá para fazer direto na planilha. Na aba **Escala**, apague as linhas d
 | `detalhe` | a linha de baixo, como o tema e o versículo. Pode ficar vazia |
 | `marca` | uma etiqueta para a semana, como "Saco cheio". Pode ficar vazia |
 | `hora` | o horário do prazo, como `19:30`. Vazia vale 09:00 |
+| `grupo` | só nas funções de culto: o mesmo texto nas três linhas do mesmo culto, como `culto-31`. Nas outras tarefas, vazia |
 | `nome`, `token`, `quando` | deixe vazias. A página preenche |
 
 A coluna `token` fica escondida. É um código aleatório que identifica o aparelho de quem se escalou e permite que essa pessoa saia da tarefa depois.
