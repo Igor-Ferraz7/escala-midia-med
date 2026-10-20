@@ -5,7 +5,7 @@
   --neutro-fundo: #f5f6f8;       /* realce cinza: passar o mouse, avisos neutros */
   --texto: #14161a;
   --texto-2: #374151;            /* texto corrido mais leve (orientações, cartões) */
-  --suave: #6b7280;
+  --suave: #5f6673;
   --linha: #eceef1;
   --borda-campo: #d9dce1;
   --destaque: #2563eb;           /* fundo dos botões azuis (texto branco por cima) */
@@ -26,7 +26,7 @@
   --aviso-fundo: #fff7ed;
   --aviso-fundo-forte: #ffedd5;
   --aviso-borda: #fcd9a8;
-  --aviso-texto: #b45309;
+  --aviso-texto: #9a4a07;
   --perigo-fundo: #fef3f2;
   --perigo-fundo-forte: #fde4e1;
   --perigo-borda: #f3c1bd;
@@ -48,7 +48,7 @@
   --texto-2: #c4c9d0;
   --suave: #9aa2ad;
   --linha: #2a2f37;
-  --borda-campo: #3b414b;
+  --borda-campo: #646c78;
   --destaque: #2563eb;
   --destaque-escuro: #1d4ed8;
   --destaque-texto: #7aa7ff;
@@ -176,13 +176,14 @@ h1 { font-size: 24px; font-weight: 500; margin: 0; line-height: 1.15; letter-spa
   background: var(--destaque); color: #fff; font-size: 14px; font-weight: 500;
 }
 .vinculo-erro { color: var(--erro); }
-.vinculo small { display: block; margin-top: 8px; font-size: 12px; opacity: 0.85; }
+.vinculo small { display: block; margin-top: 8px; font-size: 12px; }
 input {
   width: 100%; height: 44px; padding: 0 14px;
   border: 1px solid var(--borda-campo); border-radius: 12px;
   font: inherit; font-size: 16px; color: var(--texto); background: var(--fundo);
 }
 input:focus { border-color: var(--destaque); outline: none; box-shadow: 0 0 0 3px var(--anel); }
+input::placeholder { color: var(--suave); opacity: 1; }
 .erro { color: var(--erro); font-size: 13px; min-height: 18px; margin: 4px 0 0; }
 
 .filtros {
@@ -298,6 +299,7 @@ input:focus { border-color: var(--destaque); outline: none; box-shadow: 0 0 0 3p
 a.icone { text-decoration: none; }
 /* Botão de tema: mostra a lua no claro (vai para o escuro) e o sol no escuro. */
 .tema-sol { display: none; }
+.so-leitor { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 :root[data-tema="escuro"] .tema-sol { display: block; }
 :root[data-tema="escuro"] .tema-lua { display: none; }
 
@@ -334,7 +336,7 @@ select:focus { border-color: var(--destaque); outline: none; box-shadow: 0 0 0 3
 }
 .dialogo[open] { display: flex; flex-direction: column; }
 .dialogo > form { display: flex; flex-direction: column; flex: 1; min-height: 0; }
-.dialogo::backdrop { background: var(--veu); }
+.dialogo::backdrop { background: var(--veu, rgba(20, 22, 26, 0.45)); } /* iOS 16 não passa variáveis ao ::backdrop */
 .dialogo-topo { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 14px 14px 6px 20px; }
 .dialogo-topo h2 { margin: 0; font-size: 20px; font-weight: 500; }
 .dialogo-corpo { padding: 4px 20px 12px; overflow-y: auto; }
@@ -415,6 +417,8 @@ select:focus { border-color: var(--destaque); outline: none; box-shadow: 0 0 0 3
 
 /* Caixas de marcar (o estilo geral de input deixaria com 44px de altura). */
 input[type="checkbox"] { width: 20px; height: 20px; margin: 0; padding: 0; flex: none; accent-color: var(--destaque); cursor: pointer; }
+/* No escuro o Chrome pinta o traço do "parcial" em cinza-escuro sobre o azul; com o azul claro ele aparece. */
+:root[data-tema="escuro"] input[type="checkbox"] { accent-color: var(--destaque-texto); }
 .sel-tarefa { display: flex; align-items: center; justify-content: center; width: 28px; min-height: 40px; flex: none; cursor: pointer; }
 .marcar-semana { display: inline-flex; align-items: center; gap: 6px; margin-left: auto; font-size: 13px; color: var(--texto); cursor: pointer; }
 .marcar-semana input { width: 18px; height: 18px; }
@@ -438,6 +442,7 @@ input[type="checkbox"] { width: 20px; height: 20px; margin: 0; padding: 0; flex:
 .cartao h2 { margin: 0 0 6px; font-size: 17px; font-weight: 500; }
 .cartao p { margin: 0 0 12px; font-size: 14px; color: var(--texto-2); }
 .cartao ol { margin: 0 0 4px; padding-left: 20px; font-size: 14px; color: var(--texto-2); }
+.cartao .erro { margin: 4px 0 12px; color: var(--erro); }
 .cartao code { font-size: 13px; background: var(--neutro-fundo); padding: 1px 5px; border-radius: 4px; }
 .form-grade { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 12px; }
 .form-grade .campo label { display: block; margin-bottom: 6px; font-size: 13px; color: var(--suave); }

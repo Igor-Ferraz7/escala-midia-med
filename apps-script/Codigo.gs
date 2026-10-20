@@ -591,11 +591,19 @@ function admSalvarTarefa(pedido) {
 // excluir as tarefas mais novas: o maior já usado fica guardado. Assim uma tela desatualizada
 // (outra aba do responsável) não apaga uma tarefa nova que herdaria o id de uma excluída.
 function proximoId(d, quantos) {
+  const primeiro = guardarMaiorId(d) + 1;
+  PropertiesService.getScriptProperties().setProperty('ULTIMO_ID', String(primeiro + (quantos || 1) - 1));
+  return primeiro;
+}
+
+// Grava o maior id já usado (o da aba ou o guardado, o que for maior). Chamado antes de excluir,
+// para que um id apagado não volte nem na primeira tarefa criada depois.
+function guardarMaiorId(d) {
   const props = PropertiesService.getScriptProperties();
   const naAba = d.linhas.reduce(function (m, l) { return Math.max(m, Number(texto(l[d.col.id])) || 0); }, 0);
-  const primeiro = Math.max(naAba, Number(props.getProperty('ULTIMO_ID')) || 0) + 1;
-  props.setProperty('ULTIMO_ID', String(primeiro + (quantos || 1) - 1));
-  return primeiro;
+  const maior = Math.max(naAba, Number(props.getProperty('ULTIMO_ID')) || 0);
+  props.setProperty('ULTIMO_ID', String(maior));
+  return maior;
 }
 
 // Linhas das três funções de um culto, prontas para a planilha.
@@ -667,6 +675,7 @@ function admLigarLembretes() {
 function admExcluirTarefa(pedido) {
   const d = acharLinha(pedido.id);
   if (d.indice < 0) return { erro: 'tarefa_nao_existe' };
+  guardarMaiorId(d);
   d.aba.deleteRow(d.numero);
   return {};
 }
@@ -703,6 +712,7 @@ function admExcluirTarefas(pedido) {
   const d = lerAba();
   const linhas = [];
   d.linhas.forEach(function (l, i) { if (ids.indexOf(texto(l[d.col.id])) >= 0) linhas.push(i + 2); });
+  guardarMaiorId(d);
   linhas.sort(function (a, b) { return b - a; }).forEach(function (n) { d.aba.deleteRow(n); });
   return {};
 }
@@ -721,6 +731,7 @@ function admLimparInscricoes() {
 // Apaga todas as tarefas, para montar um mês novo do zero.
 function admApagarTarefas() {
   const d = lerAba();
+  guardarMaiorId(d);
   if (d.linhas.length) d.aba.deleteRows(2, d.linhas.length);
   return {};
 }

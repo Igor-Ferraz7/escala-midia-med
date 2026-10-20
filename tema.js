@@ -22,11 +22,10 @@
     raiz.dataset.tema = tema;
     const cor = document.querySelector('meta[name="theme-color"]');
     if (cor) cor.content = tema === 'escuro' ? '#121418' : '#ffffff';
+    // O nome para leitores de tela vem dos textos .tema-lua/.tema-sol dentro do botão (o CSS mostra o certo);
+    // aqui só a dica ao passar o mouse.
     const rotulo = tema === 'escuro' ? 'Usar o modo claro' : 'Usar o modo escuro';
-    document.querySelectorAll('[data-alternar-tema]').forEach((b) => {
-      b.setAttribute('aria-label', rotulo);
-      b.title = rotulo;
-    });
+    document.querySelectorAll('[data-alternar-tema]').forEach((b) => { b.title = rotulo; });
   }
 
   aplicar();

@@ -93,9 +93,13 @@ Na área do responsável:
 
 Na planilha, as três funções são três linhas com o mesmo texto na coluna `grupo`.
 
+## Modo claro e escuro
+
+A página e a área do responsável seguem o tema do aparelho: celular no modo escuro, página escura. O botão de lua (ou de sol, no escuro), no alto da página, força o outro tema e a escolha fica salva naquele aparelho. Para voltar a seguir o aparelho, é só tocar de novo até ficar no mesmo tema dele.
+
 ## Lembretes
 
-Cada pessoa toca no **sino**, ao lado do botão de atualizar, escolhe quando quer ser avisada e toca em **Ativar lembretes**. Dá para ter até 5 lembretes, misturando:
+Cada pessoa toca no **sino**, na barra dos filtros (Todos, Vagas livres, Minhas), escolhe quando quer ser avisada e toca em **Ativar lembretes**. Dá para ter até 5 lembretes, misturando:
 
 - **Dias antes, num horário:** por exemplo, 1 dia antes às 20:00. Com 0, avisa no próprio dia.
 - **Horas ou minutos antes do prazo:** por exemplo, 2 horas antes.

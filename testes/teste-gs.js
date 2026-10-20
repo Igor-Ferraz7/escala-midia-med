@@ -90,6 +90,22 @@ secao('Administração');
   r = post({ acao: 'adm_salvar_tarefa', sessao: s, tarefa: { data: '2026-11-05', tipo: 'culto', tarefa: '=IMPORTXML("x")' } });
   ok(r.ok && abas.Escala.dados.some((l) => l[3] === '=IMPORTXML("x")'), 'texto começando com = vai como texto (seguro)');
 
+  // Planilha que já estava no ar (sem ULTIMO_ID): excluir a de id mais alto antes de criar qualquer
+  // tarefa também não pode liberar o id.
+  {
+    const amb = criarAmbiente(CAMINHO, { silencioso: true });
+    amb.props.SENHA_ADMIN = SENHA_TESTE;
+    const p2 = (o) => JSON.parse(amb.ctx.doPost({ postData: { contents: JSON.stringify(Object.assign({ token: A }, o)) } }));
+    const s2 = p2({ acao: 'adm_entrar', senha: SENHA_TESTE }).sessao;
+    p2({ acao: 'adm_excluir_tarefas', sessao: s2, ids: ['29', '30'] });
+    let q = p2({ acao: 'adm_salvar_tarefa', sessao: s2, tarefa: { data: '2026-11-02', tipo: 'aviso', tarefa: 'Aviso' } });
+    ok(q.ok && q.adm.tarefas.some((t) => t.id === '31') && !q.adm.tarefas.some((t) => t.id === '29' || t.id === '30'),
+      'sem ULTIMO_ID: excluir as últimas antes de criar não reaproveita os ids');
+    p2({ acao: 'adm_apagar_tarefas', sessao: s2 });
+    q = p2({ acao: 'adm_salvar_tarefa', sessao: s2, tarefa: { data: '2026-12-01', tipo: 'aviso', tarefa: 'Aviso' } });
+    ok(q.ok && q.adm.tarefas.length === 1 && q.adm.tarefas[0].id === '32', 'apagar tudo e criar continua depois do último id');
+  }
+
   r = post({ acao: 'adm_tirar_pessoa', sessao: s, id: '31' });
   ok(r.adm.tarefas.find((t) => t.id === '31').nome === '', 'tira a pessoa de uma tarefa');
   r = post({ acao: 'adm_excluir_tarefa', sessao: s, id: '31' });
