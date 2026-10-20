@@ -4,6 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="#ffffff">
+  <script src="tema.js"></script>
   <title>Escala da Mídia</title>
   <link rel="manifest" href="manifest.webmanifest">
   <link rel="icon" href="icone-192.png" type="image/png">
@@ -24,8 +25,9 @@
           <p class="mes" id="mes">&nbsp;</p>
         </div>
         <div class="topo-acoes">
-          <button id="abrir-lembretes" class="icone" type="button" aria-label="Lembretes">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 5a2 2 0 1 1 4 0a7 7 0 0 1 4 6v3a4 4 0 0 0 2 3H4a4 4 0 0 0 2-3v-3a7 7 0 0 1 4-6"/><path d="M9 17v1a3 3 0 0 0 6 0v-1"/></svg>
+          <button class="icone" type="button" data-alternar-tema aria-label="Usar o modo escuro">
+            <svg class="tema-lua" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3a6 6 0 0 0 9 9a9 9 0 1 1-9-9z"/></svg>
+            <svg class="tema-sol" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/></svg>
           </button>
           <button id="atualizar" class="icone" type="button" aria-label="Atualizar escala">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 11a8.1 8.1 0 0 0-15.5-2M4 5v4h4"/><path d="M4 13a8.1 8.1 0 0 0 15.5 2M20 19v-4h-4"/></svg>
@@ -55,6 +57,9 @@
         <button type="button" class="filtro" data-filtro="todos" aria-pressed="true">Todos</button>
         <button type="button" class="filtro" data-filtro="livres" aria-pressed="false">Vagas livres</button>
         <button type="button" class="filtro" data-filtro="minhas" aria-pressed="false">Minhas</button>
+        <button id="abrir-lembretes" class="icone filtro-sino" type="button" aria-label="Lembretes">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 5a2 2 0 1 1 4 0a7 7 0 0 1 4 6v3a4 4 0 0 0 2 3H4a4 4 0 0 0 2-3v-3a7 7 0 0 1 4-6"/><path d="M9 17v1a3 3 0 0 0 6 0v-1"/></svg>
+        </button>
       </div>
 
       <div class="progresso">

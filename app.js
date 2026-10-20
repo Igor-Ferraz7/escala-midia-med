@@ -61,6 +61,7 @@
   let filtro = 'todos';
   let jaRolou = false;
   let ocupado = false;
+  let salvando = null; // id da tarefa que está sendo salva agora
 
   // ---------- Armazenamento no aparelho ----------
 
@@ -364,6 +365,8 @@
   }
 
   function botaoDaTarefa(t, passou) {
+    // Desenhado de novo enquanto salva (abrir um culto, trocar o filtro): continua "Salvando…".
+    if (salvando === String(t.id)) return '<button type="button" class="' + (t.seu ? 'voce' : 'quero') + '" disabled>Salvando…</button>';
     if (t.seu) {
       return '<button type="button" class="voce" data-acao="desfazer" data-id="' + esc(t.id) + '" aria-label="Você está nesta tarefa. Toque para sair">Você ✓</button>';
     }
@@ -433,12 +436,14 @@
     const aberto = filtro !== 'todos' || abertos.has(g.chave);
     const lista = filtro !== 'todos' ? visiveis : g.funcoes;
     const vagas = g.funcoes.length - preenchidas;
+    // Culto que já passou não tem mais vaga para pegar: só diz se ficou completo.
+    const contagem = !vagas ? 'completo' : passou ? '' : vagas === 1 ? '1 vaga livre' : vagas + ' vagas livres';
     return '<div class="grupo' + (passou ? ' passado' : '') + (ehHoje ? ' hoje' : '') + (aberto ? ' aberto' : '') + '">' +
       '<button type="button" class="grupo-topo" data-grupo="' + esc(g.chave) + '" aria-expanded="' + aberto + '">' +
         '<div class="data"><b>' + d.getDate() + '</b><small>' + (ehHoje ? 'hoje' : DIAS[d.getDay()]) + '</small></div>' +
         '<div class="info">' +
           '<div class="titulo"><span class="ponto" style="background:' + cor + '"></span>' + esc(TITULO_GRUPO[g.funcoes[0].tipo] || 'Culto') +
-            '<span class="grupo-contagem">' + (vagas ? (vagas === 1 ? '1 vaga livre' : vagas + ' vagas livres') : 'completo') + '</span></div>' +
+            (contagem ? '<span class="grupo-contagem">' + contagem + '</span>' : '') + '</div>' +
           (comum ? '<div class="detalhe">' + esc(comum) + '</div>' : '') +
           '<div class="grupo-barra" aria-label="' + preenchidas + ' de ' + g.funcoes.length + ' funções preenchidas">' +
             g.funcoes.map((t) => '<span class="' + (t.seu ? 'sua' : t.nome ? 'ocupada' : '') + '"></span>').join('') +
@@ -581,7 +586,8 @@
       return;
     }
     const botao = ev.target.closest('button[data-acao]');
-    if (!botao || ocupado) return;
+    if (!botao) return;
+    if (ocupado) { avisar('Espere terminar de salvar.'); return; }
     const tarefa = tarefas.find((t) => String(t.id) === botao.dataset.id);
     if (!tarefa) return;
     const acao = botao.dataset.acao;
@@ -600,8 +606,8 @@
     if (acao === 'desfazer' && !window.confirm('Sair de ' + descrever(tarefa) + '?')) return;
 
     ocupado = true;
-    botao.disabled = true;
-    botao.textContent = 'Salvando…';
+    salvando = String(tarefa.id);
+    render();
     try {
       const r = await enviar(acao, { id: String(tarefa.id), nome: nome });
       if (r && Array.isArray(r.tarefas)) tarefas = r.tarefas;
@@ -623,6 +629,7 @@
       avisar('Não deu para salvar. Confira a internet e tente de novo.');
     } finally {
       ocupado = false;
+      salvando = null;
       render();
     }
   });

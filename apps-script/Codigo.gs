@@ -563,9 +563,8 @@ function admSalvarTarefa(pedido) {
       });
     }
   } else {
-    const maior = d.linhas.reduce(function (m, l) { return Math.max(m, Number(texto(l[d.col.id])) || 0); }, 0);
     const nova = new Array(d.largura).fill('');
-    nova[d.col.id] = String(maior + 1);
+    nova[d.col.id] = String(proximoId(d, 1));
     d.aba.appendRow(nova);
     numero = d.aba.getLastRow();
   }
@@ -588,8 +587,15 @@ function admSalvarTarefa(pedido) {
   return {};
 }
 
-function proximoId(d) {
-  return d.linhas.reduce(function (m, l) { return Math.max(m, Number(texto(l[d.col.id])) || 0); }, 0) + 1;
+// Reserva "quantos" ids seguidos e devolve o primeiro. Um id nunca é reaproveitado, nem depois de
+// excluir as tarefas mais novas: o maior já usado fica guardado. Assim uma tela desatualizada
+// (outra aba do responsável) não apaga uma tarefa nova que herdaria o id de uma excluída.
+function proximoId(d, quantos) {
+  const props = PropertiesService.getScriptProperties();
+  const naAba = d.linhas.reduce(function (m, l) { return Math.max(m, Number(texto(l[d.col.id])) || 0); }, 0);
+  const primeiro = Math.max(naAba, Number(props.getProperty('ULTIMO_ID')) || 0) + 1;
+  props.setProperty('ULTIMO_ID', String(primeiro + (quantos || 1) - 1));
+  return primeiro;
 }
 
 // Linhas das três funções de um culto, prontas para a planilha.
@@ -625,7 +631,7 @@ function admCriarCulto(pedido) {
     detalhe: String(c.detalhe || '').replace(/\s+/g, ' ').trim().slice(0, 160),
     marca: String(c.marca || '').replace(/\s+/g, ' ').trim().slice(0, 30)
   };
-  const linhas = linhasDoCulto(d, proximoId(d), base, horas);
+  const linhas = linhasDoCulto(d, proximoId(d, FUNCOES_CULTO.length), base, horas);
   d.aba.getRange(d.aba.getLastRow() + 1, 1, linhas.length, d.largura).setValues(linhas);
   return {};
 }
@@ -636,7 +642,7 @@ function admDividirCultos() {
   const d = lerAba();
   const antigos = tarefasValidas(d).filter(function (t) { return t.tipo === 'culto' && !t.grupo; });
   if (!antigos.length) return {};
-  let id = proximoId(d);
+  let id = proximoId(d, FUNCOES_CULTO.length * antigos.length);
   let novas = [];
   antigos.forEach(function (t) {
     novas = novas.concat(linhasDoCulto(d, id, t, { video: t.hora, arte: t.hora, fotos: t.hora }));
@@ -749,12 +755,23 @@ function admExcluirPessoa(pedido) {
 // cria as chaves de assinatura e o gatilho que roda a cada 5 minutos.
 function configurarLembretes() {
   const props = PropertiesService.getScriptProperties();
-  if (!props.getProperty('VAPID_PRIVADA')) {
+  const chavesNovas = !props.getProperty('VAPID_PRIVADA');
+  if (chavesNovas) {
     const chaves = ecGerarChaves();
     props.setProperty('VAPID_PRIVADA', chaves.privada);
     props.setProperty('VAPID_PUBLICA', chaves.publica);
   }
-  if (!gatilhoAtivo()) ScriptApp.newTrigger('enviarLembretes').timeBased().everyMinutes(5).create();
+  try {
+    if (!gatilhoAtivo()) ScriptApp.newTrigger('enviarLembretes').timeBased().everyMinutes(5).create();
+  } catch (e) {
+    // Sem o gatilho nenhum lembrete sai. Com a chave à mostra, a página ofereceria lembretes
+    // que nunca chegam; por isso as chaves criadas agora são desfeitas.
+    if (chavesNovas) {
+      props.deleteProperty('VAPID_PRIVADA');
+      props.deleteProperty('VAPID_PUBLICA');
+    }
+    throw e;
+  }
   props.setProperty('LEMBRETES_ULTIMA', String(Date.now()));
   tabela(NOME_ABA_LEMBRETES, COLUNAS_LEMBRETES, criarAbaLembretes);
   Logger.log('Lembretes ligados. Chave pública: ' + props.getProperty('VAPID_PUBLICA'));

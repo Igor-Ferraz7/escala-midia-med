@@ -94,6 +94,10 @@ secao('Administração');
   ok(r.adm.tarefas.find((t) => t.id === '31').nome === '', 'tira a pessoa de uma tarefa');
   r = post({ acao: 'adm_excluir_tarefa', sessao: s, id: '31' });
   ok(!r.adm.tarefas.some((t) => t.id === '31'), 'exclui uma tarefa');
+  // A 31 era a de id mais alto: a próxima não pode herdar o id, senão uma tela desatualizada
+  // (outra aba do responsável, com a 31 marcada) apagaria a tarefa nova.
+  r = post({ acao: 'adm_salvar_tarefa', sessao: s, tarefa: { data: '2026-11-06', tipo: 'musica', tarefa: 'Música do dia' } });
+  ok(r.ok && !r.adm.tarefas.some((t) => t.id === '31') && r.adm.tarefas.some((t) => t.id === '33'), 'id de tarefa excluída não é reaproveitado');
 
   r = post({ acao: 'adm_liberar_pessoa', sessao: s, nome: 'Maria Lima' });
   ok(r.adm.pessoas.find((p) => p.nome === 'Maria Lima').aparelhos === 0, 'libera os aparelhos de um nome');
@@ -122,7 +126,7 @@ secao('Administração');
   r = post({ acao: 'adm_apagar_tarefas', sessao: s });
   ok(r.adm.tarefas.length === 0 && abas.Escala.dados.length === 1, 'apaga todas as tarefas e mantém o cabeçalho');
   r = post({ acao: 'adm_salvar_tarefa', sessao: s, tarefa: { data: '2026-12-01', tipo: 'culto', tarefa: 'Culto' } });
-  ok(r.adm.tarefas.length === 1 && r.adm.tarefas[0].id === '1', 'depois de apagar tudo, a primeira tarefa nova é a 1');
+  ok(r.adm.tarefas.length === 1 && Number(r.adm.tarefas[0].id) > 33, 'depois de apagar tudo, os ids continuam de onde pararam');
 
   post({ acao: 'adm_sair', sessao: s });
   r = post({ acao: 'adm_dados', sessao: s });
@@ -206,6 +210,13 @@ secao('Culto dividido em três funções');
   const s2 = post2({ acao: 'adm_entrar', senha: SENHA_TESTE }).sessao;
   r = post2({ acao: 'adm_ligar_lembretes', sessao: s2 });
   ok(r.erro === 'lembretes_falhou' && r.detalhe.includes('permissão'), 'se o Google recusar, devolve o motivo para a tela mostrar');
+  ok(r.vapid === null && !amb2.props.VAPID_PRIVADA && !amb2.props.VAPID_PUBLICA &&
+    post2({ acao: 'adm_dados', sessao: s2 }).adm.lembretes.configurado === false,
+    'sem o gatilho, a chave criada é desfeita: a página não oferece lembretes que nunca sairiam');
+  delete amb2.ctx.ScriptApp.newTrigger;
+  amb2.ctx.ScriptApp.newTrigger = (fn) => ({ timeBased: () => ({ everyMinutes: () => ({ create: () => amb2.gatilhos.push(fn) }) }) });
+  r = post2({ acao: 'adm_ligar_lembretes', sessao: s2 });
+  ok(r.ok && r.vapid && amb2.gatilhos.length === 1, 'depois de autorizar, ligar de novo funciona');
 }
 
 // ======================================================================

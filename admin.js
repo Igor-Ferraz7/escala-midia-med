@@ -45,7 +45,8 @@
     tarefa_nao_existe: 'Essa tarefa não existe mais. A lista foi atualizada.',
     nome_nao_existe: 'Esse nome não existe mais. A lista foi atualizada.',
     selecao_invalida: 'Marque pelo menos uma tarefa.',
-    lembretes_falhou: 'O Google não deixou ligar os lembretes.'
+    lembretes_falhou: 'O Google não deixou ligar os lembretes.',
+    acao_invalida: 'O script da planilha ainda é a versão anterior. Espere uns minutos e tente de novo.'
   };
 
   async function pedir(acao, extra) {
@@ -314,7 +315,7 @@
     const b = ev.target.closest('button');
     if (!b) return;
     if (b.id === 'ligar-lembretes') {
-      if (ocupado) return;
+      if (esperando()) return;
       ocupado = true;
       b.disabled = true;
       b.textContent = 'Ligando…';
@@ -335,6 +336,7 @@
       }
     }
     if (b.id === 'dividir-cultos') {
+      if (esperando()) return;
       if (!confirm(el('texto-cultos').textContent + ' Continuar?')) return;
       acao(b, 'adm_dividir_cultos', {}, 'Cultos divididos em 3 funções.');
     }
@@ -360,9 +362,16 @@
     tempoToast = setTimeout(() => t.classList.remove('ver'), 3200);
   }
 
+  // Uma ação de cada vez. Com outra ainda rodando, avisa em vez de ignorar calado.
+  // As telas chamam antes de pedir confirmação, para não aceitar um "OK" que seria descartado.
+  function esperando() {
+    if (ocupado) avisar('Espere a ação anterior terminar.');
+    return ocupado;
+  }
+
   // Roda uma ação com o botão em espera; erros viram aviso.
   async function acao(botao, nome, extra, mensagemOk) {
-    if (ocupado) return false;
+    if (esperando()) return false;
     ocupado = true;
     const texto = botao.textContent;
     botao.disabled = true;
@@ -387,6 +396,7 @@
     const b = ev.target.closest('button');
     if (!b) return;
     if (b.dataset.editar) return abrirTarefa(acharTarefa(b.dataset.editar));
+    if ((b.dataset.tirar || b.dataset.excluir) && esperando()) return;
     if (b.dataset.tirar) {
       const t = acharTarefa(b.dataset.tirar);
       if (t && confirm('Tirar ' + t.nome + ' de ' + t.tarefa + ' (' + dataCurta(t.data) + ')?')) {
@@ -426,7 +436,7 @@
   // Tenta a ação em massa; se o script da planilha ainda for da versão anterior
   // (não conhece a ação), faz uma por uma.
   async function emMassa(botao, acaoMassa, acaoUma, ids, mensagemOk) {
-    if (ocupado || !ids.length) return;
+    if (!ids.length || esperando()) return;
     ocupado = true;
     botao.disabled = true;
     botao.textContent = 'Aguarde…';
@@ -451,14 +461,14 @@
 
   el('massa-tirar').addEventListener('click', (ev) => {
     const ids = dados.tarefas.filter((t) => selecionadas.has(t.id) && t.nome).map((t) => t.id);
-    if (!ids.length) return;
+    if (!ids.length || esperando()) return;
     if (!confirm('Tirar as pessoas de ' + (ids.length === 1 ? '1 tarefa' : ids.length + ' tarefas') + '? As tarefas continuam, com a vaga livre.')) return;
     emMassa(ev.currentTarget, 'adm_tirar_pessoas', 'adm_tirar_pessoa', ids, ids.length === 1 ? 'Vaga liberada.' : ids.length + ' vagas liberadas.');
   });
 
   el('massa-excluir').addEventListener('click', (ev) => {
     const marcadas = dados.tarefas.filter((t) => selecionadas.has(t.id));
-    if (!marcadas.length) return;
+    if (!marcadas.length || esperando()) return;
     const comPessoa = marcadas.filter((t) => t.nome).length;
     const texto = 'Excluir ' + (marcadas.length === 1 ? '1 tarefa' : marcadas.length + ' tarefas') + '?' +
       (comPessoa ? ' ' + (comPessoa === 1 ? '1 delas tem' : comPessoa + ' delas têm') + ' alguém escalado.' : '') + ' Não dá para desfazer.';
@@ -470,6 +480,7 @@
   el('lista-pessoas').addEventListener('click', (ev) => {
     const b = ev.target.closest('button');
     if (!b) return;
+    if ((b.dataset.liberar || b.dataset.excluirPessoa) && esperando()) return;
     if (b.dataset.liberar && confirm('Desligar os aparelhos de ' + b.dataset.liberar + '? O próximo aparelho que usar esse nome fica com ele.')) {
       acao(b, 'adm_liberar_pessoa', { nome: b.dataset.liberar }, 'Aparelhos desligados.');
     }
@@ -479,11 +490,13 @@
   });
 
   el('limpar-inscricoes').addEventListener('click', (ev) => {
+    if (esperando()) return;
     if (confirm('Tirar todo mundo de todas as tarefas? As tarefas continuam.')) {
       acao(ev.currentTarget, 'adm_limpar_inscricoes', {}, 'Todas as vagas estão livres.');
     }
   });
   el('apagar-tarefas').addEventListener('click', (ev) => {
+    if (esperando()) return;
     const n = dados.tarefas.length;
     const resposta = prompt('Isso apaga as ' + n + ' tarefas e quem estava nelas, sem volta. Para confirmar, digite APAGAR:');
     if (resposta === null) return;
@@ -508,6 +521,9 @@
     ['t-hora', 't-tarefa', 't-nome'].forEach((id) => { el(id).closest('.campo').hidden = culto; });
     el('bloco-funcoes').hidden = !culto;
     el('t-tipo').disabled = !!(t && t.grupo);
+    // Uma tarefa comum editada não vira culto: ficaria com uma vaga só, no formato antigo,
+    // e "Dividir cultos" a trocaria pelas 3 funções. Culto novo é por "+ Nova tarefa".
+    el('t-tipo').querySelector('option[value="culto"]').disabled = !!(t && !t.grupo && t.tipo !== 'culto');
     el('titulo-tarefa').textContent = editandoId ? (t && t.grupo ? 'Editar função do culto' : 'Editar tarefa') : (culto ? 'Novo culto' : 'Nova tarefa');
     el('dica-hora').textContent = culto
       ? 'Cada função vira uma vaga separada. Prazo vazio vale ' + (dados.horaPadrao || '09:00') + '.'
@@ -553,8 +569,8 @@
     if (!tarefa.data) { erro.textContent = 'Escolha a data.'; return; }
     const culto = modoCulto();
     if (!culto && !tarefa.tarefa) { erro.textContent = 'Escreva o nome da tarefa.'; el('t-tarefa').focus(); return; }
-    if (ocupado) return;
     // Erros aparecem dentro da janela: o aviso flutuante ficaria escondido atrás dela.
+    if (ocupado) { erro.textContent = 'Espere a ação anterior terminar.'; return; }
     const botao = el('salvar-tarefa');
     ocupado = true;
     botao.disabled = true;
